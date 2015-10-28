@@ -11,48 +11,80 @@
 #include <ppe/stdint.h>
 #include <ppe/errornum.h>
 #include <ppe/endianess.h>
-//#include <ppe/_lib_crc.h>
+#include <ppe/_lib_crc.h>
 
+
+/*
+ *    EthernetFrameHeader
+ * @brief Ethernet-Frame Header
+ */
 typedef net_struct_begin{
 	uint8_t dstMacAddr[6];
 	uint8_t srcMacAddr[6];
 	uint16_t type;
 } net_struct_end EthernetFrameHeader;
 
+/*
+ *    EthernetFrameFooter
+ * @brief Ethernet-Frame Footer
+ */
 typedef net_struct_begin{
 	uint32_t crc;
 } net_struct_end EthernetFrameFooter;
 
+
+/*
+ *    MacAddr
+ * @brief Mac Address
+ * This structure is designed, to efficiently assign a mac address.
+ */
 typedef net_struct_begin{
 	uint8_t content[6];
 } net_struct_end MacAddr;
 
 typedef void* Pointer;
 
-// TODO: add COMMENTS!!!!!!
 int ppe_createPacket_eth(ppeBuffer *packet, Eth_FrameInfo *info) {
 	Pointer beginHeader, endHeader, beginFooter, endFooter;
 	EthernetFrameHeader *header;
 	EthernetFrameFooter *footer;
 
+	/*
+	 * Unpack memory address of the start and end of the packet.
+	 */
 	endHeader    =   packet->position;
 	beginFooter  =   packet->limit;
 
+	/*
+	 * Calculating the outer frame boundaries.
+	 */
 	beginHeader  =   endHeader - sizeof(EthernetFrameHeader);
 	endFooter    =   beginFooter + sizeof(EthernetFrameFooter);
 
+	/*
+	 * Check, wether the new frame exceeds the buffer boundaries.
+	 */
 	if(beginHeader < packet->begin) return ERROR_BUFFER_OVERFLOW;
 	if(endFooter > packet->end) return ERROR_BUFFER_OVERFLOW;
 
+	/*
+	 * Assign the header and footer struct-pointers.
+	 */
 	header  =  beginHeader;
 	footer  =  beginFooter;
 
+	/*
+	 * Construct the header.
+	 */
 	*((MacAddr*)header->srcMacAddr)   =   *((MacAddr*)info->local);
 	*((MacAddr*)header->dstMacAddr)   =   *((MacAddr*)info->remote);
 	header->type                      =   encBE16( info->type );
-	footer->crc                       =   encBE32( crc32(0,beginHeader,beginFooter-beginHeader) );
-	
-	return 1;
+
+	/*
+	 * Calculate the CRC32 sum and construct the footer.
+	 */
+	footer->crc  =  encBE32( crc32(0,beginHeader,beginFooter-beginHeader) );
+	return 0;
 }
 
 int ppe_parsePacket_eth(ppeBuffer *packet, Eth_FrameInfo *info){
@@ -86,6 +118,12 @@ int ppe_parsePacket_eth(ppeBuffer *packet, Eth_FrameInfo *info){
 	info->length               =    (uint16_t)(beginFooter-endHeader);
 	footer                     =    beginFooter;
 	info->crcsum               =    decBE32( footer->crc );
+
+	/*
+	 * Check for corruption of the frame.
+	 */
+	if(info->crcsum != crc32(0,beginHeader,beginFooter-beginHeader))
+		return ERROR_CHECKSUM_MISMATCH;
 
 	/*
 	 * Assign the new boundaries to the packet.

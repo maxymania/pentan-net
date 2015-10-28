@@ -92,7 +92,7 @@ static uint32_t crc32_tab[] = {
 };
 
 static inline uint32_t
-crc32(uint32_t crc, const void *buf, size_t size)
+crc32(uint32_t crc, const void *buf, uintptr_t size)
 {
 	const uint8_t *p;
 
