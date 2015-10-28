@@ -25,7 +25,7 @@ typedef struct{
 } Eth_FrameInfo;
 
 /*
- * @brief create an Ethernet Frame
+ * @brief creates an Ethernet Frame
  * @param  packet  The Packet Buffer.
  * @param  info    Frame Informations
  * @return 0 on success, !=0 otherwise
@@ -37,7 +37,7 @@ typedef struct{
 int ppe_createPacket_eth(ppeBuffer *packet, Eth_FrameInfo *info);
 
 /*
- * @brief Parses an Ethernet Frame
+ * @brief parses an Ethernet Frame
  * @param  packet  The Packet Buffer.
  * @param  info    Frame Informations
  * @return 0 on success, !=0 otherwise
