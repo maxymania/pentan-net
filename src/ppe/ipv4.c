@@ -112,7 +112,7 @@ static uint16_t ipHeaderSum(uint16_t* hdr, int ihl2){
 	 * Folds the result.
 	 */
 	while(check>>16) check = (check&0xffff)+(check>>16);
-	return check;
+	return ~check;
 }
 
 
@@ -185,7 +185,7 @@ int ppe_parsePacket_ipv4(ppeBuffer *packet, IPV4_PacketInfo *info) {
 	/*
 	 * Bounds-check header.
 	 */
-	if( endHeader > packet->limit ) return ERROR_BUFFER_OVERFLOW;
+	if( endHeader > packet->limit ) return 100;//ERROR_BUFFER_OVERFLOW;
 
 	header  =  beginHeader;
 

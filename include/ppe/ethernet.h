@@ -18,11 +18,20 @@ typedef struct{
 	uint16_t type;
 
 	 /* ignored in createPacket */
-	uint16_t crcsum;
+	uint32_t crcsum;
 
-	 /* ignored in createPacket */
 	uint16_t length;
 } Eth_FrameInfo;
+
+enum {
+	Eth_IPv4 = 0x0800,
+	Eth_IPv6 = 0x86DD,
+};
+
+enum {
+	Eth_Opts_Has_Preamble = 1, /* not yet implemented */
+	Eth_Opts_Has_Crc = 2,
+};
 
 /*
  * @brief creates an Ethernet Frame
@@ -34,7 +43,7 @@ typedef struct{
  * The Frame header will be prepended and the footer will be appended to the
  * ethernet frame.
  */
-int ppe_createPacket_eth(ppeBuffer *packet, Eth_FrameInfo *info);
+int ppe_createPacket_eth(ppeBuffer *packet, Eth_FrameInfo *info,uint8_t flags);
 
 /*
  * @brief parses an Ethernet Frame
@@ -45,7 +54,7 @@ int ppe_createPacket_eth(ppeBuffer *packet, Eth_FrameInfo *info);
  * This function parses an Ethernet Frame, and extracts the source and destination
  * addresses, as well as the type.
  */
-int ppe_parsePacket_eth(ppeBuffer *packet, Eth_FrameInfo *info);
+int ppe_parsePacket_eth(ppeBuffer *packet, Eth_FrameInfo *info,uint8_t flags);
 
 #endif
 

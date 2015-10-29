@@ -13,7 +13,6 @@
 #include <ppe/endianess.h>
 #include <ppe/_lib_crc.h>
 
-
 /*
  *    EthernetFrameHeader
  * @brief Ethernet-Frame Header
@@ -44,7 +43,7 @@ typedef net_struct_begin{
 
 typedef void* Pointer;
 
-int ppe_createPacket_eth(ppeBuffer *packet, Eth_FrameInfo *info) {
+int ppe_createPacket_eth(ppeBuffer *packet, Eth_FrameInfo *info,uint8_t flags) {
 	Pointer beginHeader, endHeader, beginFooter, endFooter;
 	EthernetFrameHeader *header;
 	EthernetFrameFooter *footer;
@@ -67,15 +66,13 @@ int ppe_createPacket_eth(ppeBuffer *packet, Eth_FrameInfo *info) {
 	if(beginHeader < packet->begin) return ERROR_BUFFER_OVERFLOW;
 	if(endFooter > packet->end) return ERROR_BUFFER_OVERFLOW;
 
-	/*
-	 * Assign the header and footer struct-pointers.
-	 */
-	header  =  beginHeader;
-	footer  =  beginFooter;
+	packet->position =  beginHeader;
+	packet->limit    =  endFooter;
 
 	/*
 	 * Construct the header.
 	 */
+	header                            =   beginHeader;
 	*((MacAddr*)header->srcMacAddr)   =   *((MacAddr*)info->local);
 	*((MacAddr*)header->dstMacAddr)   =   *((MacAddr*)info->remote);
 	header->type                      =   encBE16( info->type );
@@ -83,11 +80,15 @@ int ppe_createPacket_eth(ppeBuffer *packet, Eth_FrameInfo *info) {
 	/*
 	 * Calculate the CRC32 sum and construct the footer.
 	 */
-	footer->crc  =  encBE32( crc32(0,beginHeader,beginFooter-beginHeader) );
+	if(flags&Eth_Opts_Has_Crc){
+		footer           =  beginFooter;
+		footer->crc      =  encBE32( crc32(0,beginHeader,beginFooter-beginHeader) );
+		packet->limit    =  endFooter;
+	}
 	return 0;
 }
 
-int ppe_parsePacket_eth(ppeBuffer *packet, Eth_FrameInfo *info){
+int ppe_parsePacket_eth(ppeBuffer *packet, Eth_FrameInfo *info,uint8_t flags){
 	Pointer beginHeader, endHeader, beginFooter;
 	EthernetFrameHeader *header;
 	EthernetFrameFooter *footer;
@@ -122,14 +123,16 @@ int ppe_parsePacket_eth(ppeBuffer *packet, Eth_FrameInfo *info){
 	/*
 	 * Check for corruption of the frame.
 	 */
-	if(info->crcsum != crc32(0,beginHeader,beginFooter-beginHeader))
-		return ERROR_CHECKSUM_MISMATCH;
+	if(flags & Eth_Opts_Has_Crc)
+		if(info->crcsum != crc32(0,beginHeader,beginFooter-beginHeader))
+			return ERROR_CHECKSUM_MISMATCH;
 
 	/*
 	 * Assign the new boundaries to the packet.
 	 */
 	packet->position   =   endHeader;
-	packet->limit      =   beginFooter;
+	if(flags & Eth_Opts_Has_Crc)
+		packet->limit  =   beginFooter;
 	return 0;
 }
 

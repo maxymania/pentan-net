@@ -31,6 +31,11 @@ typedef struct{
 	uint32_t options[10];
 } IPV4_PacketInfo;
 
+enum {
+	IPV4_FRAG_DF = 2,
+	IPV4_FRAG_MF = 1,
+};
+
 /*
  * @brief creates an IPv4 Packet
  * @param  packet  The Packet Buffer.
