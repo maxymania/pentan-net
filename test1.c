@@ -1,4 +1,4 @@
-#include <ppe/ethernet.h>
+#include <ppe/ipv6.h>
 #include <ppe/endianess.h>
 
 int main(){

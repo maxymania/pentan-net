@@ -6,3 +6,4 @@ gcc -c test1.c $CCFLAGS
 
 gcc -c src/ppe/ethernet.c $CCFLAGS
 gcc -c src/ppe/ipv4.c $CCFLAGS
+gcc -c src/ppe/ipv6.c $CCFLAGS

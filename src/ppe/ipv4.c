@@ -11,7 +11,6 @@
 #include <ppe/stdint.h>
 #include <ppe/errornum.h>
 #include <ppe/endianess.h>
-#include <ppe/_lib_crc.h>
 
 /*
  *             Figure 1: IPv4 packet
@@ -41,8 +40,8 @@
  */
 
 /*
- *    EthernetFrameHeader
- * @brief Ethernet-Frame Header
+ *    IPv4PacketHeader
+ * @brief IPv4-Packet Header
  */
 typedef net_struct_begin{
 	/* Word 1 */
@@ -151,7 +150,7 @@ int ppe_createPacket_ipv4(ppeBuffer *packet, IPV4_PacketInfo *info) {
 	header                       =  beginHeader;
 	header->versionAndIhl        =  0x40 | info->ihl;
 	header->dscpAndEcn           =  encBE16( info->dscpAndEcn );
-	header->totalLength          =  length;
+	header->totalLength          =  encBE16( (uint16_t) length );
 	header->fragmentId           =  encBE16( info->fragmentId );
 	header->fragmentOffsetFlags  =  encBE16(
 		(info->fragmentOffset&0x1fff)|(info->fragmentFlags<<13)
@@ -172,7 +171,8 @@ int ppe_createPacket_ipv4(ppeBuffer *packet, IPV4_PacketInfo *info) {
 }
 
 int ppe_parsePacket_ipv4(ppeBuffer *packet, IPV4_PacketInfo *info) {
-	int ihl, length,i; uint16_t fragment;
+	int ihl,i;
+	uint16_t fragment, length;
 	Pointer beginHeader, endHeader,endPacket;
 	IPv4PacketHeader *header;
 	
