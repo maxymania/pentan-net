@@ -29,7 +29,7 @@ typedef struct{
 	 /* ignored in createPacket */
 	uint16_t length;
 	uint32_t options[10];
-} IPV4_FrameInfo;
+} IPV4_PacketInfo;
 
 /*
  * @brief creates an IPv4 Packet
@@ -39,7 +39,7 @@ typedef struct{
  * 
  * This function creates an IPv4 packet with source and destination address.
  */
-int ppe_createPacket_ipv4(ppeBuffer *packet, IPV4_FrameInfo *info);
+int ppe_createPacket_ipv4(ppeBuffer *packet, IPV4_PacketInfo *info);
 
 /*
  * @brief parses an IPv4 Packet
@@ -49,7 +49,7 @@ int ppe_createPacket_ipv4(ppeBuffer *packet, IPV4_FrameInfo *info);
  * 
  * This function parses an IPv4 packet and extracts all header informations.
  */
-int ppe_parsePacket_ipv4(ppeBuffer *packet, IPV4_FrameInfo *info);
+int ppe_parsePacket_ipv4(ppeBuffer *packet, IPV4_PacketInfo *info);
 
 #endif
 

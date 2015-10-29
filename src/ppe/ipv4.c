@@ -117,7 +117,7 @@ static uint16_t ipHeaderSum(uint16_t* hdr, int ihl2){
 }
 
 
-int ppe_createPacket_ipv4(ppeBuffer *packet, IPV4_FrameInfo *info) {
+int ppe_createPacket_ipv4(ppeBuffer *packet, IPV4_PacketInfo *info) {
 	uintptr_t length;int i;
 	Pointer beginHeader, endHeader,endPacket;
 	IPv4PacketHeader *header;
@@ -171,7 +171,7 @@ int ppe_createPacket_ipv4(ppeBuffer *packet, IPV4_FrameInfo *info) {
 	return 0;
 }
 
-int ppe_parsePacket_ipv4(ppeBuffer *packet, IPV4_FrameInfo *info) {
+int ppe_parsePacket_ipv4(ppeBuffer *packet, IPV4_PacketInfo *info) {
 	int ihl, length,i; uint16_t fragment;
 	Pointer beginHeader, endHeader,endPacket;
 	IPv4PacketHeader *header;
