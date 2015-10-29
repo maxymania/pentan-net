@@ -136,8 +136,8 @@ int ppe_parsePacket_ipv6(ppeBuffer *packet, IPV6_PacketInfo *info) {
 	info->length                =   length;
 	info->protocol              =   header->nextHeader;
 	info->ttl                   =   header->hopLimit;
-	*((IPv6Addr*)info->remote)  =    *((IPv6Addr*)header->srcIPv6Addr);
-	*((IPv6Addr*)info->local)   =    *((IPv6Addr*)header->dstIPv6Addr);
+	*((IPv6Addr*)info->remote)  =   *((IPv6Addr*)header->srcIPv6Addr);
+	*((IPv6Addr*)info->local)   =   *((IPv6Addr*)header->dstIPv6Addr);
 
 	/*
 	 * Assign the new boundaries to the packet.
