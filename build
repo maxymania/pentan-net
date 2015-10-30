@@ -7,5 +7,6 @@ gcc -c test1.c $CCFLAGS
 gcc -c src/ppe/ethernet.c $CCFLAGS
 gcc -c src/ppe/ipv4.c $CCFLAGS
 gcc -c src/ppe/ipv6.c $CCFLAGS
+gcc -c src/ppe/tcp.c $CCFLAGS
 
 gcc testpcap2.c -Iinclude ethernet.o ipv4.o -lpcap -o testpcap2

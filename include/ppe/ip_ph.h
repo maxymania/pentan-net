@@ -18,17 +18,19 @@
  */
 
 enum {
-	IPPH_IPv4 = 4;
-	IPPH_IPv6 = 6;
+	IPPH_IPv4 = 4,
+	IPPH_IPv6 = 6,
 };
 
-struct {
-	uint8_t ipphType = 0;
+typedef struct {
+	uint8_t ipphType;
 	union {
 		IPV4_PacketInfo ipv4;
 		IPV6_PacketInfo ipv6;
 	};
 } IPPH_Struct;
+
+uint64_t ppe_ipphChecksum(IPPH_Struct *ipph, uintptr_t size);
 
 
 #endif
