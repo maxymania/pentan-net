@@ -45,6 +45,7 @@ static uint16_t tcpHeaderSum(uint16_t* content, uintptr_t size, IPPH_Struct *ipp
 	 * Skip the checksum field.
 	 */
 	++content;
+	size-=2;
 
 	/*
 	 * Process the rest of the header.
@@ -113,7 +114,6 @@ int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *i
 		(info->offset-5) * 4
 	);
 
-	
 	if( info->checksum != tcpHeaderSum( beginHeader, endPacket-beginHeader, ipph) )
 		return ERROR_CHECKSUM_MISMATCH;
 
@@ -121,7 +121,7 @@ int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *i
 	 * Assign the new boundaries to the packet.
 	 */
 	packet->position   =   endHeader;
-	return 1;
+	return 0;
 }
 
 

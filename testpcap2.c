@@ -20,6 +20,8 @@
 
 #include <ppe/ethernet.h>
 #include <ppe/ipv4.h>
+#include <ppe/ip.h>
+#include <ppe/tcp.h>
 
 /* callback function that is passed to pcap_loop(..) and called each time 
  * a packet is recieved                                                    */
@@ -28,7 +30,9 @@ void my_callback(u_char *useless,const struct pcap_pkthdr* pkthdr,const u_char*
 {
 	ppeBuffer BUFFER;
 	Eth_FrameInfo eth_info;
-	IPV4_PacketInfo ip4_info;
+	//IPV4_PacketInfo ip4_info;
+	IPPH_Struct ip_info;
+	TCP_SegmentInfo tcp_info;
 	int result,i;
     static int count = 1;
     fprintf(stdout,"%d, ",count);
@@ -47,9 +51,20 @@ void my_callback(u_char *useless,const struct pcap_pkthdr* pkthdr,const u_char*
 	switch(eth_info.type){
 	case Eth_IPv4:
 		fprintf(stdout,"IPv4 ");
-		result = ppe_parsePacket_ipv4(&BUFFER,&ip4_info);
+		ip_info.ipphType = IPPH_IPv4;
+		result = ppe_parsePacket_ipv4(&BUFFER,&ip_info.ipv4);
 		if(result)goto my_error;
-		fprintf(stdout,"(P:%02x)",ip4_info.protocol);
+		switch(ip_info.ipv4.protocol) {
+			case IPProto_TCP:
+				result = ppe_parsePacket_tcp(&BUFFER,&tcp_info,&ip_info);
+				if(result)goto my_error;
+				fprintf(stdout," [%d->%d]OK!"
+								,(int)tcp_info.sourcePort
+								,(int)tcp_info.destPort);
+				break;
+			default:
+				fprintf(stdout," Unknown (P:%02x)",ip_info.ipv4.protocol);
+		}
 	}
 	
 	fprintf(stdout,"\n");
@@ -75,10 +90,10 @@ int main(int argc,char **argv)
     /* grab a device to peak into... */
     //dev = pcap_lookupdev(errbuf);
     //if(dev == NULL)
-    //{ printf("%s\n",errbuf); exit(1); }
+    //	{ printf("%s\n",errbuf); exit(1); }
     /* open device for reading */
     //descr = pcap_open_live(dev,BUFSIZ,0,-1,errbuf);
-	descr = pcap_open_offline("/home/simon/devel/c/PCAP/pcap_example.pcap",errbuf);
+	descr = pcap_open_offline("../pcap_example.pcap",errbuf);
 
 
 

@@ -25,7 +25,7 @@ typedef struct{
 } TCP_SegmentInfo;
 
 /*
- * @brief creates an IPv6 Packet
+ * @brief creates an TCP segment
  * @param  packet  The Packet Buffer.
  * @param  info    Frame Informations
  * @return 0 on success, !=0 otherwise
@@ -35,7 +35,7 @@ typedef struct{
 int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *ipph);
 
 /*
- * @brief parses an IPv6 Packet
+ * @brief parses an TCP segment
  * @param  packet  The Packet Buffer.
  * @param  info    Frame Informations
  * @return 0 on success, !=0 otherwise

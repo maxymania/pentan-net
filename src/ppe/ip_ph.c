@@ -55,7 +55,7 @@ uint64_t ppe_ipphChecksum(IPPH_Struct *ipph, uintptr_t size){
 	case IPPH_IPv4:
 		checksum += (ipph->ipv4.remote&0xffff) + ((ipph->ipv4.remote>>16)&0xffff);
 		checksum += (ipph->ipv4.local&0xffff) + ((ipph->ipv4.local>>16)&0xffff);
-		checksum += ipph->ipv4.protocol;
+		checksum += encBE16(ipph->ipv4.protocol);
 		checksum += encBE16(size&0xffff);
 		break;
 	case IPPH_IPv6:
@@ -65,7 +65,7 @@ uint64_t ppe_ipphChecksum(IPPH_Struct *ipph, uintptr_t size){
 		for(i = 0;i < 16; ++i) checksum += ptr[i];
 		checksum += encBE16(size&0xffff);
 		checksum += encBE16((size>>16)&0xffff);
-		checksum += ipph->ipv4.protocol;
+		checksum += encBE16(ipph->ipv6.protocol);
 		break;
 	}
 
