@@ -30,7 +30,6 @@ typedef net_struct_begin{
 
 typedef void* Pointer;
 
-
 static uint16_t tcpHeaderSum(uint16_t* content, uintptr_t size, IPPH_Struct *ipph){
 	int i;
 	uint64_t check = 0;
@@ -114,7 +113,8 @@ int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *i
 		(info->offset-5) * 4
 	);
 
-	if( info->checksum != tcpHeaderSum( beginHeader, endPacket-beginHeader, ipph ) )
+	
+	if( info->checksum != tcpHeaderSum( beginHeader, endPacket-beginHeader, ipph) )
 		return ERROR_CHECKSUM_MISMATCH;
 
 	/*
