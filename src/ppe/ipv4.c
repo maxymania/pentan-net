@@ -223,6 +223,10 @@ int ppe_parsePacket_ipv4(ppeBuffer *packet, IPV4_PacketInfo *info) {
 	if( endPacket > packet->limit ) return ERROR_BUFFER_OVERFLOW;
 	if( (beginHeader+(4*ihl)) > endPacket ) return ERROR_BUFFER_OVERFLOW;
 	if( ihl<5 || ihl>15 ) return ERROR_BUFFER_OVERFLOW;
+
+	/*
+	 * Copy the IPv4-Options.
+	 */
 	for(i=5; i<ihl ;++i)
 		info->options[i-5] = decBE32( ((Word*)beginHeader)[i].value );
 

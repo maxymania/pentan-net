@@ -30,7 +30,7 @@ typedef net_struct_begin{
 
 typedef void* Pointer;
 
-static uint16_t tcpHeaderSum(uint16_t* content, uintptr_t size, IPPH_Struct *ipph){
+static inline uint16_t tcpHeaderSum(uint16_t* content, uintptr_t size, IPPH_Struct *ipph){
 	int i;
 	uint64_t check = 0;
 
@@ -67,7 +67,7 @@ static uint16_t tcpHeaderSum(uint16_t* content, uintptr_t size, IPPH_Struct *ipp
 	return ~check;
 }
 
-static void copy(uint8_t *src,uint8_t *dst, int num){
+static inline void copy(uint8_t *src,uint8_t *dst, int num){
 	int i;
 	for(i=0;i<num;++i)
 		dst[i] = src[i];
@@ -80,18 +80,26 @@ int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *
 }
 
 
-// TODO: comments!
 int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *ipph) {
 	uint16_t dataOffsetFlags;
 	Pointer beginHeader,endHeader,endPacket;
 	TcpSegmentHeader *header;
 
+	/*
+	 * Get the begin-pointer, and the end-pointer of the packet.
+	 */
 	beginHeader = packet->position;
 	endPacket = packet->limit;
 
+	/*
+	 * Calculate the preliminary header boundaries, and perform bounds-checks.
+	 */
 	endHeader = beginHeader + sizeof(TcpSegmentHeader);
 	if( endHeader > endPacket ) return ERROR_BUFFER_OVERFLOW;
 
+	/*
+	 * Unpack the TCP-Header.
+	 */
 	header            =   beginHeader;
 	info->sourcePort  =   decBE16( header->sourcePort );
 	info->destPort    =   decBE16( header->destPort );
@@ -104,16 +112,25 @@ int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *i
 	info->checksum    =   header->checksum;
 	info->urg         =   decBE16( header->urg );
 
+	/*
+	 * Recalculate the end of the header, and perform bounds-checks.
+	 */
 	if( info->offset < 5 ) return ERROR_BUFFER_OVERFLOW;
 	endHeader = beginHeader + ( info->offset * 4 );
 	if( endHeader > endPacket ) return ERROR_BUFFER_OVERFLOW;
 
+	/*
+	 * Copy the TCP-Options.
+	 */
 	copy(
 		beginHeader + sizeof(TcpSegmentHeader),
 		info->options,
 		(info->offset-5) * 4
 	);
 
+	/*
+	 * Perform checksum checking.
+	 */
 	if( info->checksum != tcpHeaderSum( beginHeader, endPacket-beginHeader, ipph) )
 		return ERROR_CHECKSUM_MISMATCH;
 
