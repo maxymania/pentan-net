@@ -74,9 +74,57 @@ static inline void copy(uint8_t *src,uint8_t *dst, int num){
 }
 
 int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *ipph) {
+	uint16_t dataOffsetFlags;
+	Pointer beginHeader,endHeader,endPacket;
+	TcpSegmentHeader *header;
 
-	// TODO: Implement
-	return 1;
+	/*
+	 * Check the Offset boundaries.
+	 */
+	if( info->offset<5 || info->offset >15 ) return ERROR_BUFFER_OVERFLOW;
+
+	/*
+	 * Calculate the Packet header size.
+	 */
+	endHeader    = packet->position;
+	endPacket    = packet->limit;
+	beginHeader  = endHeader-(4*info->offset);
+
+	/*
+	 * Bound-check the Header.
+	 */
+	if( beginHeader < packet->begin) return ERROR_BUFFER_OVERFLOW;
+
+	dataOffsetFlags          =  ((info->offset)<<12)|info->flags;
+	header                   =  beginHeader;
+	header->sourcePort       =  encBE16( info->local );
+	header->destPort         =  encBE16( info->remote );
+	header->seq              =  encBE32( info->seq );
+	header->ack              =  encBE32( info->ack );
+	dataOffsetFlags          =  ((info->offset)<<12)|info->flags;
+	header->dataOffsetFlags  =  encBE16( dataOffsetFlags);
+	header->windowSize       =  encBE16( info->windowSize );
+	header->urg              =  encBE16( info->urg );
+
+	/*
+	 * Copy the TCP-Options.
+	 */
+	copy(
+		info->options,
+		beginHeader + sizeof(TcpSegmentHeader),
+		(info->offset-5) * 4
+	);
+
+	/*
+	 * Calculate the TCP Checksum.
+	 */
+	header->checksum   =  tcpHeaderSum( beginHeader, endPacket-beginHeader, ipph);
+
+	/*
+	 * Assign the new boundaries to the packet.
+	 */
+	packet->position   =   beginHeader;
+	return 0;
 }
 
 
@@ -101,8 +149,8 @@ int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *i
 	 * Unpack the TCP-Header.
 	 */
 	header            =   beginHeader;
-	info->sourcePort  =   decBE16( header->sourcePort );
-	info->destPort    =   decBE16( header->destPort );
+	info->remote      =   decBE16( header->sourcePort );
+	info->local       =   decBE16( header->destPort );
 	info->seq         =   decBE32( header->seq );
 	info->ack         =   decBE32( header->ack );
 	dataOffsetFlags   =   decBE16( header->dataOffsetFlags );

@@ -59,8 +59,8 @@ void my_callback(u_char *useless,const struct pcap_pkthdr* pkthdr,const u_char*
 				result = ppe_parsePacket_tcp(&BUFFER,&tcp_info,&ip_info);
 				if(result)goto my_error;
 				fprintf(stdout," [%d->%d]OK!"
-								,(int)tcp_info.sourcePort
-								,(int)tcp_info.destPort);
+								,(int)tcp_info.remote
+								,(int)tcp_info.local);
 				break;
 			default:
 				fprintf(stdout," Unknown (P:%02x)",ip_info.ipv4.protocol);

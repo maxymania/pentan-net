@@ -13,7 +13,7 @@
 #include <ppe/ip_ph.h>
 
 typedef struct{
-	uint16_t  sourcePort,destPort;
+	uint16_t  remote,local;
 	uint32_t  seq;
 	uint32_t  ack;
 	uint8_t   offset;
