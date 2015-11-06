@@ -1,4 +1,5 @@
 // this file is changed.
+// This file has been modified by Simon Schmidt
 /**********************************************************************
 * file:   testpcap2.c
 * date:   2001-Mar-14 12:14:19 AM 
@@ -58,12 +59,15 @@ void my_callback(u_char *useless,const struct pcap_pkthdr* pkthdr,const u_char*
 			case IPProto_TCP:
 				result = ppe_parsePacket_tcp(&BUFFER,&tcp_info,&ip_info);
 				if(result)goto my_error;
-				fprintf(stdout," [%d->%d]OK!"
-								,(int)tcp_info.remote
-								,(int)tcp_info.local);
+				fprintf(stdout," TCP [%d->%d]"
+								,(int)tcp_info.remotePort
+								,(int)tcp_info.localPort);
+				break;
+			case IPProto_UDP:
+				fprintf(stdout," UDP!");
 				break;
 			default:
-				fprintf(stdout," Unknown (P:%02x)",ip_info.ipv4.protocol);
+				fprintf(stdout," Unknown (P:%02x)",(int)ip_info.ipv4.protocol);
 		}
 	}
 	

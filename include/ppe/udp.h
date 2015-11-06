@@ -14,35 +14,29 @@
 
 typedef struct{
 	uint16_t  remotePort,localPort;
-	uint32_t  seq;
-	uint32_t  ack;
-	uint8_t   offset;
-	uint16_t  flags;
-	uint16_t  windowSize;
+	uint16_t  length;
 	uint16_t  checksum;
-	uint16_t  urg;
-	uint8_t   options[40];
-} TCP_SegmentInfo;
+} UDP_PacketInfo;
 
 /*
- * @brief creates an TCP segment
+ * @brief creates an UDP packet
  * @param  packet  The Packet Buffer.
  * @param  info    Frame Informations
  * @return 0 on success, !=0 otherwise
  * 
- * This function creates an TCP segment with source and destination port.
+ * This function creates an UDP packet with source and destination port.
  */
-int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *ipph);
+int ppe_createPacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *ipph);
 
 /*
- * @brief parses an TCP segment
+ * @brief parses an UDP packet
  * @param  packet  The Packet Buffer.
  * @param  info    Frame Informations
  * @return 0 on success, !=0 otherwise
  * 
- * This function parses an TCP segment and extracts all header informations.
+ * This function parses an UDP packet and extracts all header informations.
  */
-int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *ipph);
+int ppe_parsePacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *ipph);
 
 #endif
 
