@@ -32,6 +32,9 @@ static inline uint16_t udpChecksum(uint16_t* content, uintptr_t size, IPPH_Struc
 
 	check = ppe_ipphChecksum(ipph, size);
 
+	/*
+	 * Process the udp-header, except the checksum-field.
+	 */
 	check   += content[0];
 	check   += content[1];
 	check   += content[2];
@@ -58,13 +61,6 @@ static inline uint16_t udpChecksum(uint16_t* content, uintptr_t size, IPPH_Struc
 	return ~check;
 }
 
-static inline void copy(uint8_t *src,uint8_t *dst, int num){
-	int i;
-	for(i=0;i<num;++i)
-		dst[i] = src[i];
-}
-
-// TODO: more comments!
 int ppe_createPacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *ipph) {
 	uint16_t length;
 	Pointer beginHeader,endHeader,endPacket;
@@ -82,7 +78,7 @@ int ppe_createPacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *i
 		 * In IPv6 jumbograms it's possible to have UDP packets of size
 		 * greater than 65535 bytes. (see RFC2675)
 		 *
-		 * The length field must be set to zero.
+		 * Then, the length field must be set to zero.
 		 */
 		if(ipph->ipphType!=IPPH_IPv6) return ERROR_BUFFER_OVERFLOW;
 		length = 0;
@@ -115,7 +111,6 @@ int ppe_createPacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *i
 	return 0;
 }
 
-// TODO: more comments!
 int ppe_parsePacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *ipph) {
 	uint16_t dataOffsetFlags;
 	Pointer beginHeader,endHeader,endPacket;
@@ -144,19 +139,22 @@ int ppe_parsePacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *ip
 
 	/*
 	 * Handle the length-field of the UDP-Header.
+	 *
+	 *
+	 * In IPv6 jumbograms it's possible to have UDP packets of size
+	 * greater than 65535 bytes. (see RFC2675)
+	 *
+	 * Then, the length field must be set to zero.
+	 *
+	 * However, from time to time, those packets are also crafted from
+	 * RFC incompliant Networking Stacks, so we tolerate this as even
+	 * if a zero-length would be forbidden otherwise. (ROBUSTNESS)
+	 *
 	 */
 	if( info->length ) {
 		if( info->length < 8 ) return ERROR_BUFFER_OVERFLOW;
 		endPacket = beginHeader+info->length;
 		if( endPacket > packet->limit ) return ERROR_BUFFER_OVERFLOW;
-	} else {
-		/*
-		 * In IPv6 jumbograms it's possible to have UDP packets of size
-		 * greater than 65535 bytes. (see RFC2675)
-		 *
-		 * The length field must be set to zero.
-		 */
-		if(ipph->ipphType!=IPPH_IPv6) return ERROR_BUFFER_OVERFLOW;
 	}
 
 	/*

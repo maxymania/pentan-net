@@ -6,8 +6,8 @@
  * was not distributed with this file, You can obtain one at
  * http://mozilla.org/MPL/2.0/.
  */
-#ifndef PPE_TCP_H
-#define PPE_TCP_H
+#ifndef PPE_UDP_H
+#define PPE_UDP_H
 #include <ppe/stdint.h>
 #include <ppe/buffer.h>
 #include <ppe/ip_ph.h>

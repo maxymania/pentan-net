@@ -95,7 +95,9 @@ int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *
 	 */
 	if( beginHeader < packet->begin) return ERROR_BUFFER_OVERFLOW;
 
-	dataOffsetFlags          =  ((info->offset)<<12)|info->flags;
+	/*
+	 * Build the TCP header
+	 */
 	header                   =  beginHeader;
 	header->sourcePort       =  encBE16( info->localPort );
 	header->destPort         =  encBE16( info->remotePort );

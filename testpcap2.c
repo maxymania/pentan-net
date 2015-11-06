@@ -23,6 +23,7 @@
 #include <ppe/ipv4.h>
 #include <ppe/ip.h>
 #include <ppe/tcp.h>
+#include <ppe/udp.h>
 
 /* callback function that is passed to pcap_loop(..) and called each time 
  * a packet is recieved                                                    */
@@ -34,6 +35,7 @@ void my_callback(u_char *useless,const struct pcap_pkthdr* pkthdr,const u_char*
 	//IPV4_PacketInfo ip4_info;
 	IPPH_Struct ip_info;
 	TCP_SegmentInfo tcp_info;
+	UDP_PacketInfo udp_info;
 	int result,i;
     static int count = 1;
     fprintf(stdout,"%d, ",count);
@@ -64,7 +66,11 @@ void my_callback(u_char *useless,const struct pcap_pkthdr* pkthdr,const u_char*
 								,(int)tcp_info.localPort);
 				break;
 			case IPProto_UDP:
-				fprintf(stdout," UDP!");
+				result = ppe_parsePacket_udp(&BUFFER,&udp_info,&ip_info);
+				if(result)goto my_error;
+				fprintf(stdout," UDP [%d->%d]"
+								,(int)udp_info.remotePort
+								,(int)udp_info.localPort);
 				break;
 			default:
 				fprintf(stdout," Unknown (P:%02x)",(int)ip_info.ipv4.protocol);
