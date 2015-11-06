@@ -30,7 +30,7 @@ typedef net_struct_begin{
 
 typedef void* Pointer;
 
-static inline uint16_t tcpHeaderSum(uint16_t* content, uintptr_t size, IPPH_Struct *ipph){
+static inline uint16_t tcpChecksum(uint16_t* content, uintptr_t size, IPPH_Struct *ipph){
 	int i;
 	uint64_t check = 0;
 
@@ -48,7 +48,7 @@ static inline uint16_t tcpHeaderSum(uint16_t* content, uintptr_t size, IPPH_Stru
 	size-=2;
 
 	/*
-	 * Process the rest of the header.
+	 * Process the rest of the segment.
 	 */
 	while(size>1) {
 		check+=*content;
@@ -97,8 +97,8 @@ int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *
 
 	dataOffsetFlags          =  ((info->offset)<<12)|info->flags;
 	header                   =  beginHeader;
-	header->sourcePort       =  encBE16( info->local );
-	header->destPort         =  encBE16( info->remote );
+	header->sourcePort       =  encBE16( info->localPort );
+	header->destPort         =  encBE16( info->remotePort );
 	header->seq              =  encBE32( info->seq );
 	header->ack              =  encBE32( info->ack );
 	dataOffsetFlags          =  ((info->offset)<<12)|info->flags;
@@ -118,7 +118,7 @@ int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *
 	/*
 	 * Calculate the TCP Checksum.
 	 */
-	header->checksum   =  tcpHeaderSum( beginHeader, endPacket-beginHeader, ipph);
+	header->checksum   =  tcpChecksum( beginHeader, endPacket-beginHeader, ipph);
 
 	/*
 	 * Assign the new boundaries to the packet.
@@ -149,8 +149,8 @@ int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *i
 	 * Unpack the TCP-Header.
 	 */
 	header            =   beginHeader;
-	info->remote      =   decBE16( header->sourcePort );
-	info->local       =   decBE16( header->destPort );
+	info->remotePort  =   decBE16( header->sourcePort );
+	info->localPort   =   decBE16( header->destPort );
 	info->seq         =   decBE32( header->seq );
 	info->ack         =   decBE32( header->ack );
 	dataOffsetFlags   =   decBE16( header->dataOffsetFlags );
@@ -179,7 +179,7 @@ int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *i
 	/*
 	 * Perform checksum checking.
 	 */
-	if( info->checksum != tcpHeaderSum( beginHeader, endPacket-beginHeader, ipph) )
+	if( info->checksum != tcpChecksum( beginHeader, endPacket-beginHeader, ipph) )
 		return ERROR_CHECKSUM_MISMATCH;
 
 	/*
