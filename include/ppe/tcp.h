@@ -24,6 +24,18 @@ typedef struct{
 	uint8_t   options[40];
 } TCP_SegmentInfo;
 
+enum {
+	TCPF_FIN = 0x001,
+	TCPF_SYN = 0x002,
+	TCPF_RST = 0x004,
+	TCPF_PSH = 0x008,
+	TCPF_ACK = 0x010,
+	TCPF_URG = 0x020,
+	TCPF_ECE = 0x040,
+	TCPF_CWR = 0x080,
+	TCPF_NS  = 0x100,
+};
+
 /*
  * @brief creates an TCP segment
  * @param  packet  The Packet Buffer.
