@@ -8,161 +8,146 @@
  */
 #include <ppe/tcp_control.h>
 
-enum {
-	CLOSED,
-	LISTEN,
-	SYN_SENT,
-	SYN_RECIEVED,
-	ESTABLISHED,
-	FIN_WAIT_1,
-	FIN_WAIT_2,
-	CLOSE_WAIT,
-	CLOSING,
-	LAST_ACK,
-	TIME_WAIT
-};
-
 /*
  * A bitmask for those flags, relevant to TCP connection control.
  */
 static const int TCP_CC_RELEVANT = TCPF_FIN|TCPF_SYN|TCPF_RST|TCPF_ACK;
 
-/*
- * NOTE THAT: This file is still experimental.
- *
- * Currently, I just implemented a State Automaton, that controls the
- * Connect- and Deconnect- phase.
- */
+static const int TCP_CC_FINACK = TCPF_FIN|TCPF_ACK;
 
 
-int ppe_tcpPcb_input(
-	TCP_ProtocolControlBlock* pcb,
-	int cmd,
-	ppeBuffer *packet,
-	TCP_SegmentInfo *input,
-	TCP_SegmentInfo *output
-){
-	if(cmd==TcpPcbCmd_Close) {
-		switch(pcb->state){
-		case LISTEN:
-		case SYN_SENT:
-			pcb->state = CLOSED;
-			return 0;
-		case SYN_RECIEVED:
-		case ESTABLISHED:
-			pcb->state = FIN_WAIT_1;
-			output->flags = TCPF_FIN;
-			return TCPPCB_INPUT_OUTPUT;
-		case CLOSE_WAIT:
-			pcb->state = LAST_ACK;
-			output->flags = TCPF_FIN;
-			return TCPPCB_INPUT_OUTPUT;
-		}
-	}
-
-	switch(pcb->state){
-	case CLOSED:
-		switch(cmd){
-		case TcpPcbCmd_Listen:
-			pcb->state = LISTEN;
-			return 0;
-		case TcpPcbCmd_Connect:
-			pcb->state = SYN_SENT;
-			output->flags = TCPF_SYN;
-			output->seq = 123; // TODO: random number
-			return TCPPCB_INPUT_OUTPUT;
-		}
-		return 0;
-	case LISTEN:
-		if(cmd!=0) return 0;
-		switch( (input->flags) & TCP_CC_RELEVANT ){
-		case TCPF_SYN:
-			pcb->state = SYN_RECIEVED;
-			output->flags = TCPF_SYN|TCPF_ACK;
-			output->ack = input->seq+1;
-			output->seq = 321; // TODO: random number
-			return TCPPCB_INPUT_OUTPUT;
-		}
-		return 0;
-	case SYN_SENT:
-		if(cmd!=0) return 0;
-		switch( (input->flags) & TCP_CC_RELEVANT ){
-		case TCPF_SYN|TCPF_ACK:
-			pcb->state = ESTABLISHED;
-			output->flags = TCPF_ACK;
-			output->ack = input->seq+1;
-			output->seq = input->ack+1;
-			return TCPPCB_INPUT_OUTPUT;
-		}
-		return 0;
-	case SYN_RECIEVED:
-		if(cmd!=0) return 0;
-		switch( (input->flags) & TCP_CC_RELEVANT ){
-		case TCPF_ACK:
-			pcb->state = ESTABLISHED;
-			return TCPPCB_INPUT_OUTPUT;
-		}
-		return 0;
-	case ESTABLISHED:
-		if(cmd!=0) return 0;
-		switch( (input->flags) & TCP_CC_RELEVANT ) {
-		case TCPF_FIN:
-			pcb->state = CLOSE_WAIT;
-			output->flags = TCPF_ACK;
-			output->ack = input->seq+1;
-			output->seq = input->ack+1;
-			return TCPPCB_INPUT_OUTPUT|TCPPCB_INPUT_CLOSE;
-		}
-		return 0;
-	case LAST_ACK:
-		if(cmd!=0) return 0;
-		switch( (input->flags) & TCP_CC_RELEVANT ) {
-		case TCPF_ACK:
-			pcb->state = CLOSED;
-			return TCPPCB_INPUT_OUTPUT;
-		}
-		return 0;
-	case CLOSING:
-		if(cmd!=0) return 0;
-		switch( (input->flags) & TCP_CC_RELEVANT ) {
-		case TCPF_ACK:
-			pcb->state = TIME_WAIT;
-			return TCPPCB_INPUT_OUTPUT;
-		}
-		return 0;
-	case FIN_WAIT_1:
-		if(cmd!=0) return 0;
-		switch( (input->flags) & TCP_CC_RELEVANT ) {
-		case TCPF_ACK:
-			pcb->state = FIN_WAIT_2;
-			return 0;
-		case TCPF_FIN:
-			pcb->state = CLOSING;
-			output->flags = TCPF_ACK;
-			output->ack = input->seq+1;
-			output->seq = input->ack+1;
-			return TCPPCB_INPUT_OUTPUT;
-		case TCPF_FIN|TCPF_ACK:
-			pcb->state = TIME_WAIT;
-			output->flags = TCPF_ACK;
-			output->ack = input->seq+1;
-			output->seq = input->ack+1;
-			return TCPPCB_INPUT_OUTPUT;
-		}
-	case FIN_WAIT_2:
-		if(cmd!=0) return 0;
-		switch( (input->flags) & TCP_CC_RELEVANT ) {
-		case TCPF_FIN:
-			pcb->state = TIME_WAIT;
-			output->flags = TCPF_ACK;
-			output->ack = input->seq+1;
-			output->seq = input->ack+1;
-			return TCPPCB_INPUT_OUTPUT;
-		}
-		return 0;
+int ppe_tcpPcb_isAccept(TCP_SegmentInfo *input, TCP_PacketMeta *meta){
+	if( ((input->flags)&TCP_CC_RELEVANT) == TCPF_SYN){
+		meta->flags = input->flags;
+		meta->seq   = input->seq;
+		meta->ack   = input->ack;
 	}
 	return 0;
 }
 
+int ppe_tcpPcb_accept(
+	TCP_ProtocolControlBlock* pcb,
+	TCP_SegmentInfo *output,
+	TCP_PacketMeta *meta,
+	uint32_t random){
+	pcb->state = TCP_PHASE_ACCEPTING;
+	output->flags = TCPF_SYN|TCPF_ACK;
+	output->ack = meta->seq+1;
+	output->seq = random;
+	return 0;
+}
+
+int ppe_tcpPcb_connect(
+	TCP_ProtocolControlBlock* pcb,
+	TCP_SegmentInfo *output,
+	uint32_t random){
+	pcb->state = TCP_PHASE_CONNECTING;
+	output->flags = TCPF_SYN;
+	output->seq = random;
+	return 0;
+}
+
+
+int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_SegmentInfo *input,ppeBuffer *packet){
+	int result = 0;
+	#define ADDRESULT(x) result|=x
+	#define REMRESULT(x) result&=~x
+	if(pcb->meta)
+		ADDRESULT(TCPPCB_OUTPUT_MORE);
+	if(  (input->flags)&TCPF_RST  ){
+		pcb->phase = TCP_PHASE_DEAD;
+		ADDRESULT(TCPPCB_DEAD);
+		return result;
+	}
+	switch(pcb->phase){
+	case TCP_PHASE_ESTABLISHED:
+		switch( (input->flags) & TCP_CC_RELEVANT ) {
+		case TCPF_FIN:
+			pcb->phase      = TCP_PHASE_PASSIVE_CLOSE;
+			pcb->res.flags  = TCPF_ACK;
+			pcb->res.ack    = input->seq+1;
+			pcb->res.seq    = input->ack+1;
+			pcb->res2.flags = TCPF_FIN;
+			pcb->res2.ack   = input->seq+1;
+			pcb->res2.seq   = input->ack+1;
+			pcb->meta      |= TCPMETA_RES|TCPMETA_RES2;
+			ADDRESULT(TCPPCB_OUTPUT_MORE);
+			break;
+		}
+		
+		// TODO: TCP HANDLING
+		return result;
+	case TCP_PHASE_ACCEPTING:
+		switch( (input->flags) & TCP_CC_RELEVANT ){
+		case TCPF_ACK:
+			pcb->phase      = TCP_PHASE_ESTABLISHED;
+			// TODO: TCP-Fast-Open
+			break;
+		}
+		break;
+	case TCP_PHASE_CONNECTING:
+		switch( (input->flags) & TCP_CC_RELEVANT ){
+		case TCPF_SYN|TCPF_ACK:
+			pcb->phase      = TCP_PHASE_ESTABLISHED;
+			pcb->res.flags  = TCPF_ACK;
+			pcb->res.ack    = input->seq+1;
+			pcb->res.seq    = input->ack+1;
+			pcb->meta      |= TCPMETA_RES;
+			ADDRESULT(TCPPCB_OUTPUT_MORE);
+			break;
+		}
+		break;
+	case TCP_PHASE_ACTIVE_CLOSE:
+		pcb->finack |= input->flags;
+		if( (input->flags) & TCPF_FIN ) {
+			pcb->phase      = TCP_PHASE_ESTABLISHED;
+			pcb->res.flags  = TCPF_ACK;
+			pcb->res.ack    = input->seq+1;
+			pcb->res.seq    = input->ack+1;
+			pcb->meta      |= TCPMETA_RES;
+			ADDRESULT(TCPPCB_OUTPUT_MORE);
+			break;
+		}
+		if( ( (pcb->finack)&TCP_CC_FINACK ) == TCP_CC_FINACK ){
+			pcb->phase = TCP_PHASE_DEAD;
+			ADDRESULT(TCPPCB_DEAD);
+			break;
+		}
+		break;
+	case TCP_PHASE_PASSIVE_CLOSE:
+		switch( (input->flags) & TCP_CC_RELEVANT ){
+		case TCPF_ACK:
+			pcb->phase      = TCP_PHASE_DEAD;
+			ADDRESULT(TCPPCB_DEAD);
+			break;
+		}
+		break;
+	}
+	ADDRESULT(TCPPCB_DEAD);
+	return result;
+	#undef ADDRESULT
+	#undef REMRESULT
+}
+
+int ppe_tcpPcb_output(TCP_ProtocolControlBlock* pcb,TCP_SegmentInfo *output,ppeBuffer *packet){
+	int meta = pcb->meta;
+	#define TCPMETA(field,name)                   \
+		if(meta&TCPMETA_##name){                  \
+			output->flags = pcb->field.flags;     \
+			output->ack   = pcb->field.ack;       \
+			output->seq   = pcb->field.seq;       \
+			pcb->meta = meta & ~TCPMETA_##name;   \
+			return TCPPCB_OUTPUT_OK|              \
+				(pcb->meta?TCPPCB_OUTPUT_MORE:0); \
+		}
+	TCPMETA(res,RES);
+	TCPMETA(res2,RES2);
+	#undef TCPMETA
+	return 0;
+}
+
+int ppe_tcpPcb_free(TCP_ProtocolControlBlock* pcb, ppeBuffer **packet);
+int ppe_tcpPcb_read(TCP_ProtocolControlBlock* pcb, ppeBuffer **packet);
+int ppe_tcpPcb_write(TCP_ProtocolControlBlock* pcb, ppeBuffer *packet);
 
 

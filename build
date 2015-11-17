@@ -10,6 +10,7 @@ gcc -c src/ppe/ipv6.c $CCFLAGS
 gcc -c src/ppe/tcp.c $CCFLAGS
 gcc -c src/ppe/udp.c $CCFLAGS
 gcc -c src/ppe/ip_ph.c $CCFLAGS
+gcc -c src/ppe/tcp_control.c $CCFLAGS
 
 gcc testpcap2.c -Iinclude ethernet.o ipv4.o tcp.o ip_ph.o udp.o -lpcap -o testpcap2
 
