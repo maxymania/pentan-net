@@ -20,6 +20,23 @@ typedef struct {
 	uint16_t  flags;
 } TCP_PacketMeta;
 
+typedef struct _TCP_Segment_s TCP_Segment;
+struct _TCP_Segment_s {
+    TCP_Segment *next; /* The public queue. */
+    TCP_Segment *nextInternal; /* The internally used queue. */
+    TCP_SegmentInfo header;
+    ppeBuffer packet;
+	uint16_t frameAck;
+	char transmitted;
+};
+
+typedef struct {
+	TCP_Segment *head;
+	TCP_Segment *tail;
+} TCP_SegmentQueue;
+
+typedef TCP_Segment *(*TCP_SegmentAllocator)(void* data);
+
 /*
  * @brief TCP protocol Control Block
  *
@@ -28,11 +45,21 @@ typedef struct {
  * but NOT for a listening socket.
  */
 typedef struct {
-	int lastFlags;
+	void *allocData;
+	TCP_SegmentAllocator alloc;
+	/* Ports */
+	uint16_t remotePort,localPort;	
+	uint16_t sndWnd;
+	uint16_t rcvWnd;
+	uint32_t sndSeq;
+	uint32_t rcvSeq;
+
+	/* Public queues to peek from: */
+	TCP_SegmentQueue output,read,free;
+
+	TCP_SegmentQueue retransmit;
+
 	int phase;
-	int state;
-	int meta;
-	TCP_PacketMeta res,res2;
 	uint16_t finack;
 } TCP_ProtocolControlBlock;
 
@@ -54,17 +81,8 @@ enum{
 
 
 enum{
-	TCPPCB_OUTPUT_OK   = 1,
-	TCPPCB_FREE_OK     = 2,
-	TCPPCB_READ_OK     = 4,
-	TCPPCB_WRITE_OK    = 8,
-	TCPPCB_OUTPUT_MORE = 0x10,
-	TCPPCB_FREE_MORE   = 0x20,
-	TCPPCB_READ_MORE   = 0x40,
-	TCPPCB_WRITE_MORE  = 0x80,
-
 	/* TCP connection is DEAD */
-	TCPPCB_DEAD        = 0x100,
+	TCPPCB_DEAD        = 0x1,
 };
 
 
@@ -81,12 +99,9 @@ int ppe_tcpPcb_connect(
 	TCP_SegmentInfo *output,
 	uint32_t random);
 
-int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb, TCP_SegmentInfo *input, ppeBuffer *packet);
-int ppe_tcpPcb_output(TCP_ProtocolControlBlock* pcb, TCP_SegmentInfo *output, ppeBuffer *packet);
+int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb, TCP_Segment *input);
 
-int ppe_tcpPcb_free(TCP_ProtocolControlBlock* pcb, ppeBuffer **packet);
-int ppe_tcpPcb_read(TCP_ProtocolControlBlock* pcb, ppeBuffer **packet);
-int ppe_tcpPcb_write(TCP_ProtocolControlBlock* pcb, ppeBuffer *packet);
+int ppe_tcpPcb_write(TCP_ProtocolControlBlock* pcb, TCP_Segment *packet);
 
 
 #endif
