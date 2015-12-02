@@ -53,6 +53,13 @@ typedef struct {
 	uint16_t rcvWnd;
 	uint32_t sndSeq;
 	uint32_t rcvSeq;
+	/*
+	 * Receive Counter. It is incremented by the TCP logic and must be
+	 * decremented, as data has been delivered to the Application.
+	 * The Stack maintains this counter in order to know, when to apply
+	 * back pressure.
+	 */
+	uint32_t rcvCtr;
 
 	/* Public queues to peek from: */
 	TCP_SegmentQueue output,read,free;

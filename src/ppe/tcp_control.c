@@ -15,16 +15,16 @@ static const int TCP_CC_RELEVANT = TCPF_FIN|TCPF_SYN|TCPF_RST|TCPF_ACK;
 
 static const int TCP_CC_FINACK = TCPF_FIN|TCPF_ACK;
 
-#define QUEUE_INSERT(queue,element,fnext)	\
-	do{										\
-		element->fnext = 0;					\
-		if( queue.tail ) {					\
-			queue.tail->fnext = element;	\
-		}else{								\
-			queue.head = element;			\
-			queue.tail = element;			\
-		}									\
-			queue.tail = element;			\
+#define QUEUE_INSERT(queue,element,fnext)   \
+	do{                                     \
+		element->fnext = 0;                 \
+		if( queue.tail ) {                  \
+			queue.tail->fnext = element;    \
+		}else{                              \
+			queue.head = element;           \
+			queue.tail = element;           \
+		}                                   \
+			queue.tail = element;           \
 	}while(0)
 
 
@@ -63,6 +63,7 @@ int ppe_tcpPcb_connect(
 int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_Segment *input){
 	TCP_Segment *output;
 	TCP_SegmentInfo *inputHead = &(input->header);
+	uintptr_t length = ((input->buffer.limit)-(input->buffer.position));
 	int result = 0;
 	#define ADDRESULT(x) result|=x
 	#define REMRESULT(x) result&=~x
@@ -83,6 +84,7 @@ int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_Segment *input){
 			output->header.flags      = TCPF_ACK;
 			output->header.ack        = inputHead->seq+1;
 			output->header.seq        = inputHead->ack+1;
+			output->header.windowSize = pcb->rcvWnd;
 			QUEUE_INSERT(pcb->output,output,next);
 			output                    = pcb->alloc(pcb->allocData);
 			output->header.localPort  = pcb->localPort;
@@ -90,10 +92,10 @@ int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_Segment *input){
 			output->header.flags      = TCPF_FIN;
 			output->header.ack        = inputHead->seq+1;
 			output->header.seq        = inputHead->ack+1;
+			output->header.windowSize = pcb->rcvWnd;
 			QUEUE_INSERT(pcb->output,output,next);
 			QUEUE_INSERT(pcb->free,input,next);
 			return result;
-			//break;
 		}
 		
 		if( (inputHead->flags) & TCPF_ACK ){
@@ -102,7 +104,7 @@ int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_Segment *input){
 			 * calculated ACK number below the given one from the recieved packet.
 			 */
 			while( pcb->retransmit.head &&
-				( (pcb->retransmit.head->frameAck) <
+				( (pcb->retransmit.head->frameAck) <=
 				(inputHead->ack) ) ) {
 				output = pcb->retransmit.head;
 				
@@ -126,20 +128,36 @@ int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_Segment *input){
 				pcb->retransmit.tail = 0;
 			
 			QUEUE_INSERT(pcb->free,input,next);
-		}else{
-			if( inputHead->seq < pcb->rcvSeq )
+		}
+		/*
+		 * When the packet contains data.
+		 */
+		if( length>0 ) {
+			if( inputHead->seq < pcb->rcvSeq ){
 				QUEUE_INSERT(pcb->free,input,next);
-			else if( inputHead->seq == pcb->rcvSeq ) {
-				QUEUE_INSERT(pcb->read,input,next);
-				pcb->rcvSeq += ((input->buffer.limit)-(input->buffer.position));
 				output                    = pcb->alloc(pcb->allocData);
 				output->header.localPort  = pcb->localPort;
 				output->header.remotePort = pcb->remotePort;
 				output->header.flags      = TCPF_ACK;
 				output->header.ack        = pcb->rcvSeq;
 				output->header.seq        = pcb->sndSeq;
+				// TODO: calculate remaining receive window size
+				output->header.windowSize = pcb->rcvWnd;
 				QUEUE_INSERT(pcb->output,output,next);
-			}else{
+			} else if( inputHead->seq == pcb->rcvSeq ) {
+				QUEUE_INSERT(pcb->read,input,next);
+				pcb->rcvSeq += length;
+				pcb->rcvCtr += length;
+				output                    = pcb->alloc(pcb->allocData);
+				output->header.localPort  = pcb->localPort;
+				output->header.remotePort = pcb->remotePort;
+				output->header.flags      = TCPF_ACK;
+				output->header.ack        = pcb->rcvSeq;
+				output->header.seq        = pcb->sndSeq;
+				// TODO: calculate remaining receive window size
+				output->header.windowSize = pcb->rcvWnd;
+				QUEUE_INSERT(pcb->output,output,next);
+			} else {
 				QUEUE_INSERT(pcb->free,input,next);
 				// TODO: (proper) TCP HANDLING
 			}
@@ -167,6 +185,7 @@ int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_Segment *input){
 			// TODO: Seq/Ack-number-checks?
 			pcb->rcvSeq = output->header.ack = inputHead->seq+1;
 			pcb->sndSeq = output->header.seq = inputHead->ack+1;
+			output->header.windowSize = pcb->rcvWnd;
 			QUEUE_INSERT(pcb->output,output,next);
 			break;
 		}
@@ -182,11 +201,12 @@ int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_Segment *input){
 			output->header.flags      = TCPF_ACK;
 			output->header.ack        = inputHead->seq+1;
 			output->header.seq        = inputHead->ack+1;
+			output->header.windowSize = pcb->rcvWnd;
 			QUEUE_INSERT(pcb->output,output,next);
 			break;
 		}
 		if( ( (pcb->finack)&TCP_CC_FINACK ) == TCP_CC_FINACK ){
-			pcb->phase = TCP_PHASE_DEAD;
+			pcb->phase                = TCP_PHASE_DEAD;
 			ADDRESULT(TCPPCB_DEAD);
 			break;
 		}
