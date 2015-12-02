@@ -63,7 +63,7 @@ int ppe_tcpPcb_connect(
 int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_Segment *input){
 	TCP_Segment *output;
 	TCP_SegmentInfo *inputHead = &(input->header);
-	uintptr_t length = ((input->buffer.limit)-(input->buffer.position));
+	uintptr_t length = ((input->packet.limit)-(input->packet.position));
 	int result = 0;
 	#define ADDRESULT(x) result|=x
 	#define REMRESULT(x) result&=~x
