@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 2015 Simon Schmidt
+ * Copyright(C) 2015-2016 Simon Schmidt
  * 
  * This Source Code Form is subject to the terms of the
  * Mozilla Public License, v. 2.0. If a copy of the MPL
@@ -10,10 +10,14 @@
 #define PPE_TCP_H
 #include <ppe/stdint.h>
 #include <ppe/buffer.h>
-#include <ppe/ip_ph.h>
+#include <ppe/phlite.h>
 
 typedef struct{
-	uint16_t  remotePort,localPort;
+	/*
+	 * Ports as defined in the field 'sourcePos'.
+	 * Note that ports are stored in network byte order.
+	 */
+	uint16_t  ports[2];
 	uint32_t  seq;
 	uint32_t  ack;
 	uint8_t   offset;
@@ -22,6 +26,15 @@ typedef struct{
 	uint16_t  checksum;
 	uint16_t  urg;
 	uint8_t   options[40];
+
+	IPPH_Info phCheckSum;
+
+	/* defines the order of the port pair for createPacket
+	 * 0 = {source,dest}
+	 * 1 = {dest,source}
+	 * parsePacket will set it to 0.
+	 */
+	unsigned sourcePos : 1;
 } TCP_SegmentInfo;
 
 enum {
@@ -44,7 +57,7 @@ enum {
  * 
  * This function creates an TCP segment with source and destination port.
  */
-int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *ipph);
+int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info);
 
 /*
  * @brief parses an TCP segment
@@ -54,7 +67,7 @@ int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *
  * 
  * This function parses an TCP segment and extracts all header informations.
  */
-int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *ipph);
+int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info);
 
 #endif
 

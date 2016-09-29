@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 2015 Simon Schmidt
+ * Copyright(C) 2015-2016 Simon Schmidt
  * 
  * This Source Code Form is subject to the terms of the
  * Mozilla Public License, v. 2.0. If a copy of the MPL
@@ -10,12 +10,25 @@
 #define PPE_UDP_H
 #include <ppe/stdint.h>
 #include <ppe/buffer.h>
-#include <ppe/ip_ph.h>
+#include <ppe/phlite.h>
 
 typedef struct{
-	uint16_t  remotePort,localPort;
+	/*
+	 * Ports as defined in the field 'sourcePos'.
+	 * Note that ports are stored in network byte order.
+	 */
+	uint16_t  ports[2];
 	uint16_t  length;
 	uint16_t  checksum;
+
+	IPPH_Info phCheckSum;
+
+	/* defines the order of the port pair for createPacket
+	 * 0 = {source,dest}
+	 * 1 = {dest,source}
+	 * parsePacket will set it to 0.
+	 */
+	unsigned sourcePos : 1;
 } UDP_PacketInfo;
 
 /*
@@ -26,7 +39,7 @@ typedef struct{
  * 
  * This function creates an UDP packet with source and destination port.
  */
-int ppe_createPacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *ipph);
+int ppe_createPacket_udp(ppeBuffer *packet, UDP_PacketInfo *info);
 
 /*
  * @brief parses an UDP packet
@@ -36,7 +49,7 @@ int ppe_createPacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *i
  * 
  * This function parses an UDP packet and extracts all header informations.
  */
-int ppe_parsePacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *ipph);
+int ppe_parsePacket_udp(ppeBuffer *packet, UDP_PacketInfo *info);
 
 #endif
 

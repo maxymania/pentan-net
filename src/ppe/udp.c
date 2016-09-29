@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 2015 Simon Schmidt
+ * Copyright(C) 2015-2016 Simon Schmidt
  * 
  * This Source Code Form is subject to the terms of the
  * Mozilla Public License, v. 2.0. If a copy of the MPL
@@ -12,6 +12,7 @@
 #include <ppe/errornum.h>
 #include <ppe/udp.h>
 #include <ppe/endianess.h>
+//#include <ppe/_lib_tcpsum.h>
 
 /*
  *    UdpPacketHeader
@@ -26,11 +27,13 @@ typedef net_struct_begin{
 
 typedef void* Pointer;
 
-static inline uint16_t udpChecksum(uint16_t* content, uintptr_t size, IPPH_Struct *ipph){
+static inline uint16_t udpChecksum(uint16_t* content, uintptr_t size, UDP_PacketInfo *info){
 	int i;
 	uint64_t check = 0;
 
-	check = ppe_ipphChecksum(ipph, size);
+	check  = info->phCheckSum.headerCheckSum;
+	check += encBE16(size&0xFFFF);
+	if(info->phCheckSum.modeIsV6) check += encBE16((size>>16)&0xFFFF);
 
 	/*
 	 * Process the udp-header, except the checksum-field.
@@ -61,7 +64,7 @@ static inline uint16_t udpChecksum(uint16_t* content, uintptr_t size, IPPH_Struc
 	return ~check;
 }
 
-int ppe_createPacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *ipph) {
+int ppe_createPacket_udp(ppeBuffer *packet, UDP_PacketInfo *info) {
 	uint16_t length;
 	Pointer beginHeader,endHeader,endPacket;
 	UdpPacketHeader *header;
@@ -80,7 +83,7 @@ int ppe_createPacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *i
 		 *
 		 * Then, the length field must be set to zero.
 		 */
-		if(ipph->ipphType!=IPPH_IPv6) return ERROR_BUFFER_OVERFLOW;
+		if(info->phCheckSum.modeIsV6) return ERROR_BUFFER_OVERFLOW;
 		length = 0;
 	}else{
 		length = (endPacket-beginHeader);
@@ -95,14 +98,14 @@ int ppe_createPacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *i
 	 * Build the UDP header
 	 */
 	header                   =  beginHeader;
-	header->sourcePort       =  encBE16( info->localPort );
-	header->destPort         =  encBE16( info->remotePort );
+	header->sourcePort       =  info->ports[info->sourcePos  ];
+	header->destPort         =  info->ports[info->sourcePos^1];
 	header->length           =  encBE32( info->length );
 
 	/*
 	 * Calculate the UDP Checksum.
 	 */
-	header->checksum   =  udpChecksum( beginHeader, endPacket-beginHeader, ipph);
+	header->checksum   =  udpChecksum( beginHeader, endPacket-beginHeader, info);
 
 	/*
 	 * Assign the new boundaries to the packet.
@@ -111,7 +114,7 @@ int ppe_createPacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *i
 	return 0;
 }
 
-int ppe_parsePacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *ipph) {
+int ppe_parsePacket_udp(ppeBuffer *packet, UDP_PacketInfo *info) {
 	uint16_t dataOffsetFlags;
 	Pointer beginHeader,endHeader,endPacket;
 	UdpPacketHeader *header;
@@ -132,8 +135,9 @@ int ppe_parsePacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *ip
 	 * Unpack the UDP-Header.
 	 */
 	header            =   beginHeader;
-	info->remotePort  =   decBE16( header->sourcePort );
-	info->localPort   =   decBE16( header->destPort );
+	info->sourcePos   =   0;
+	info->ports[0]    =   header->sourcePort;
+	info->ports[1]    =   header->destPort;
 	info->length      =   decBE32( header->length );
 	info->checksum    =   header->checksum;
 
@@ -160,7 +164,7 @@ int ppe_parsePacket_udp(ppeBuffer *packet, UDP_PacketInfo *info, IPPH_Struct *ip
 	/*
 	 * Perform checksum checking.
 	 */
-	if( info->checksum != udpChecksum( beginHeader, endPacket-beginHeader, ipph) )
+	if( info->checksum != udpChecksum( beginHeader, endPacket-beginHeader, info) )
 		return ERROR_CHECKSUM_MISMATCH;
 
 	/*

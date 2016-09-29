@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 2015 Simon Schmidt
+ * Copyright(C) 2015-2016 Simon Schmidt
  * 
  * This Source Code Form is subject to the terms of the
  * Mozilla Public License, v. 2.0. If a copy of the MPL
@@ -10,6 +10,7 @@
 #define PPE_IP_PSEUDOHEADER_H
 #include <ppe/ipv4.h>
 #include <ppe/ipv6.h>
+#include <ppe/phlite.h>
 
 /*
  * This source module carries structures, that are used in order to carry
@@ -30,8 +31,7 @@ typedef struct {
 	};
 } IPPH_Struct;
 
-uint64_t ppe_ipphChecksum(IPPH_Struct *ipph, uintptr_t size);
-
+void ppe_ipphChecksum(IPPH_Struct *ipph, IPPH_Info *info);
 
 #endif
 

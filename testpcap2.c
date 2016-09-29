@@ -22,6 +22,8 @@
 #include <ppe/ethernet.h>
 #include <ppe/ipv4.h>
 #include <ppe/ip.h>
+#include <ppe/ip_ph.h>
+#include <ppe/phlite.h>
 #include <ppe/tcp.h>
 #include <ppe/udp.h>
 
@@ -34,6 +36,7 @@ void my_callback(u_char *useless,const struct pcap_pkthdr* pkthdr,const u_char*
 	Eth_FrameInfo eth_info;
 	//IPV4_PacketInfo ip4_info;
 	IPPH_Struct ip_info;
+	IPPH_Info   ip_phsum;
 	TCP_SegmentInfo tcp_info;
 	UDP_PacketInfo udp_info;
 	int result,i;
@@ -56,21 +59,24 @@ void my_callback(u_char *useless,const struct pcap_pkthdr* pkthdr,const u_char*
 		fprintf(stdout,"IPv4 ");
 		ip_info.ipphType = IPPH_IPv4;
 		result = ppe_parsePacket_ipv4(&BUFFER,&ip_info.ipv4);
+		ppe_ipphChecksum(&ip_info,&ip_phsum);
 		if(result)goto my_error;
 		switch(ip_info.ipv4.protocol) {
 			case IPProto_TCP:
-				result = ppe_parsePacket_tcp(&BUFFER,&tcp_info,&ip_info);
+				tcp_info.phCheckSum = ip_phsum;
+				result = ppe_parsePacket_tcp(&BUFFER,&tcp_info);
 				if(result)goto my_error;
 				fprintf(stdout," TCP [%d->%d]"
-								,(int)tcp_info.remotePort
-								,(int)tcp_info.localPort);
+								,(int)tcp_info.ports[0]
+								,(int)tcp_info.ports[1]);
 				break;
 			case IPProto_UDP:
-				result = ppe_parsePacket_udp(&BUFFER,&udp_info,&ip_info);
+				udp_info.phCheckSum = ip_phsum;
+				result = ppe_parsePacket_udp(&BUFFER,&udp_info);
 				if(result)goto my_error;
 				fprintf(stdout," UDP [%d->%d]"
-								,(int)udp_info.remotePort
-								,(int)udp_info.localPort);
+								,(int)udp_info.ports[0]
+								,(int)udp_info.ports[1]);
 				break;
 			default:
 				fprintf(stdout," Unknown (P:%02x)",(int)ip_info.ipv4.protocol);

@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 2015 Simon Schmidt
+ * Copyright(C) 2015-2016 Simon Schmidt
  * 
  * This Source Code Form is subject to the terms of the
  * Mozilla Public License, v. 2.0. If a copy of the MPL
@@ -67,6 +67,7 @@ int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_Segment *input){
 	int result = 0;
 	#define ADDRESULT(x) result|=x
 	#define REMRESULT(x) result&=~x
+
 	if(  (inputHead->flags)&TCPF_RST  ){
 		pcb->phase = TCP_PHASE_DEAD;
 		ADDRESULT(TCPPCB_DEAD);
@@ -78,17 +79,18 @@ int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_Segment *input){
 		switch( (inputHead->flags) & TCP_CC_RELEVANT ) {
 		case TCPF_FIN:
 			pcb->phase                = TCP_PHASE_PASSIVE_CLOSE;
-			output                    = pcb->alloc(pcb->allocData);
-			output->header.localPort  = pcb->localPort;
-			output->header.remotePort = pcb->remotePort;
+			output                    = pcb->alloc(pcb->allocData); output->header.sourcePos = 0;
+			output->header.ports[0]  = pcb->localPort;
+			output->header.ports[1] = pcb->remotePort;
 			output->header.flags      = TCPF_ACK;
 			output->header.ack        = inputHead->seq+1;
 			output->header.seq        = inputHead->ack+1;
 			output->header.windowSize = pcb->rcvWnd;
 			QUEUE_INSERT(pcb->output,output,next);
-			output                    = pcb->alloc(pcb->allocData);
-			output->header.localPort  = pcb->localPort;
-			output->header.remotePort = pcb->remotePort;
+			output                    = pcb->alloc(pcb->allocData); output->header.sourcePos = 0;
+
+			output->header.ports[0]  = pcb->localPort;
+			output->header.ports[1] = pcb->remotePort;
 			output->header.flags      = TCPF_FIN;
 			output->header.ack        = inputHead->seq+1;
 			output->header.seq        = inputHead->ack+1;
@@ -135,9 +137,9 @@ int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_Segment *input){
 		if( length>0 ) {
 			if( inputHead->seq < pcb->rcvSeq ){
 				QUEUE_INSERT(pcb->free,input,next);
-				output                    = pcb->alloc(pcb->allocData);
-				output->header.localPort  = pcb->localPort;
-				output->header.remotePort = pcb->remotePort;
+				output                    = pcb->alloc(pcb->allocData); output->header.sourcePos = 0;
+				output->header.ports[0]  = pcb->localPort;
+				output->header.ports[1] = pcb->remotePort;
 				output->header.flags      = TCPF_ACK;
 				output->header.ack        = pcb->rcvSeq;
 				output->header.seq        = pcb->sndSeq;
@@ -148,9 +150,9 @@ int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_Segment *input){
 				QUEUE_INSERT(pcb->read,input,next);
 				pcb->rcvSeq += length;
 				pcb->rcvCtr += length;
-				output                    = pcb->alloc(pcb->allocData);
-				output->header.localPort  = pcb->localPort;
-				output->header.remotePort = pcb->remotePort;
+				output                    = pcb->alloc(pcb->allocData); output->header.sourcePos = 0;
+				output->header.ports[0]  = pcb->localPort;
+				output->header.ports[1] = pcb->remotePort;
 				output->header.flags      = TCPF_ACK;
 				output->header.ack        = pcb->rcvSeq;
 				output->header.seq        = pcb->sndSeq;
@@ -178,9 +180,9 @@ int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_Segment *input){
 		switch( (inputHead->flags) & TCP_CC_RELEVANT ){
 		case TCPF_SYN|TCPF_ACK:
 			pcb->phase                = TCP_PHASE_ESTABLISHED;
-			output                    = pcb->alloc(pcb->allocData);
-			output->header.localPort  = pcb->localPort;
-			output->header.remotePort = pcb->remotePort;
+			output                    = pcb->alloc(pcb->allocData); output->header.sourcePos = 0;
+			output->header.ports[0]  = pcb->localPort;
+			output->header.ports[1] = pcb->remotePort;
 			output->header.flags      = TCPF_ACK;
 			// TODO: Seq/Ack-number-checks?
 			pcb->rcvSeq = output->header.ack = inputHead->seq+1;
@@ -195,9 +197,9 @@ int ppe_tcpPcb_input(TCP_ProtocolControlBlock* pcb,TCP_Segment *input){
 		pcb->finack |= inputHead->flags;
 		if( (inputHead->flags) & TCPF_FIN ) {
 			pcb->phase                = TCP_PHASE_ESTABLISHED;
-			output                    = pcb->alloc(pcb->allocData);
-			output->header.localPort  = pcb->localPort;
-			output->header.remotePort = pcb->remotePort;
+			output                    = pcb->alloc(pcb->allocData); output->header.sourcePos = 0;
+			output->header.ports[0]  = pcb->localPort;
+			output->header.ports[1] = pcb->remotePort;
 			output->header.flags      = TCPF_ACK;
 			output->header.ack        = inputHead->seq+1;
 			output->header.seq        = inputHead->ack+1;

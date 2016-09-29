@@ -55,8 +55,8 @@
  */
 
 
-uint64_t ppe_ipphChecksum(IPPH_Struct *ipph, uintptr_t size){
-	uint64_t checksum = 0;
+void ppe_ipphChecksum(IPPH_Struct *ipph, IPPH_Info *info){
+	uint32_t checksum = 0;
 	uint16_t *ptr = 0;
 
 	/*
@@ -80,7 +80,7 @@ uint64_t ppe_ipphChecksum(IPPH_Struct *ipph, uintptr_t size){
 		checksum += (ipph->ipv4.address[0] & 0xffff) + ((ipph->ipv4.address[0]>>16) & 0xffff);
 		checksum += (ipph->ipv4.address[1] & 0xffff) + ((ipph->ipv4.address[1]>>16) & 0xffff);
 		checksum += encBE16(ipph->ipv4.protocol);
-		checksum += encBE16(size&0xffff);
+		info->modeIsV6 = 0;
 		break;
 	case IPPH_IPv6:
 
@@ -106,18 +106,22 @@ uint64_t ppe_ipphChecksum(IPPH_Struct *ipph, uintptr_t size){
 		checksum += ptr[5];
 		checksum += ptr[6];
 		checksum += ptr[7];
-		checksum += encBE16(size&0xffff);
-		checksum += encBE16((size>>16)&0xffff);
 		checksum += encBE16(ipph->ipv6.protocol);
+		info->modeIsV6 = 1;
 		break;
 	}
-
-	while(checksum>>16) checksum = (checksum&0xffff)+(checksum>>16);
-
 	/*
 	 * When in doubt, produce the hash of an empty string.
 	 */
-	return checksum;
+
+	/*
+	 * On 32 bit we need to folds in the worst case.
+	 * The branches in a loop eat up more CPU time than two fixed iterations.
+	 */
+	checksum = (checksum&0xffff)+(checksum>>16);
+	checksum = (checksum&0xffff)+(checksum>>16);
+
+	info->headerCheckSum = (uint16_t)checksum;
 }
 
 

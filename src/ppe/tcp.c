@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 2015 Simon Schmidt
+ * Copyright(C) 2015-2016 Simon Schmidt
  * 
  * This Source Code Form is subject to the terms of the
  * Mozilla Public License, v. 2.0. If a copy of the MPL
@@ -12,6 +12,7 @@
 #include <ppe/errornum.h>
 #include <ppe/tcp.h>
 #include <ppe/endianess.h>
+//#include <ppe/_lib_tcpsum.h>
 
 /*
  *    TcpSegmentHeader
@@ -30,11 +31,14 @@ typedef net_struct_begin{
 
 typedef void* Pointer;
 
-static inline uint16_t tcpChecksum(uint16_t* content, uintptr_t size, IPPH_Struct *ipph){
+static inline uint16_t tcpChecksum(uint16_t* content, uintptr_t size, TCP_SegmentInfo *info){
 	int i;
 	uint64_t check = 0;
 
-	check = ppe_ipphChecksum(ipph, size);
+	check  = info->phCheckSum.headerCheckSum;
+	check += encBE16(size&0xFFFF);
+	if(info->phCheckSum.modeIsV6) check += encBE16((size>>16)&0xFFFF);
+
 
 	/*
 	 * Process the first 8 16-bit words.
@@ -73,7 +77,7 @@ static inline void copy(uint8_t *src,uint8_t *dst, int num){
 		dst[i] = src[i];
 }
 
-int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *ipph) {
+int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info) {
 	uint16_t dataOffsetFlags;
 	Pointer beginHeader,endHeader,endPacket;
 	TcpSegmentHeader *header;
@@ -99,8 +103,8 @@ int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *
 	 * Build the TCP header
 	 */
 	header                   =  beginHeader;
-	header->sourcePort       =  encBE16( info->localPort );
-	header->destPort         =  encBE16( info->remotePort );
+	header->sourcePort       =  info->ports[info->sourcePos  ];
+	header->destPort         =  info->ports[info->sourcePos^1];
 	header->seq              =  encBE32( info->seq );
 	header->ack              =  encBE32( info->ack );
 	dataOffsetFlags          =  ((info->offset)<<12)|info->flags;
@@ -120,7 +124,7 @@ int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *
 	/*
 	 * Calculate the TCP Checksum.
 	 */
-	header->checksum   =  tcpChecksum( beginHeader, endPacket-beginHeader, ipph);
+	header->checksum   =  tcpChecksum( beginHeader, endPacket-beginHeader, info);
 
 	/*
 	 * Assign the new boundaries to the packet.
@@ -130,7 +134,7 @@ int ppe_createPacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *
 }
 
 
-int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *ipph) {
+int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info) {
 	uint16_t dataOffsetFlags;
 	Pointer beginHeader,endHeader,endPacket;
 	TcpSegmentHeader *header;
@@ -151,8 +155,9 @@ int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *i
 	 * Unpack the TCP-Header.
 	 */
 	header            =   beginHeader;
-	info->remotePort  =   decBE16( header->sourcePort );
-	info->localPort   =   decBE16( header->destPort );
+	info->sourcePos   =   0;
+	info->ports[0]    =   header->sourcePort;
+	info->ports[1]    =   header->destPort;
 	info->seq         =   decBE32( header->seq );
 	info->ack         =   decBE32( header->ack );
 	dataOffsetFlags   =   decBE16( header->dataOffsetFlags );
@@ -181,7 +186,7 @@ int ppe_parsePacket_tcp(ppeBuffer *packet, TCP_SegmentInfo *info, IPPH_Struct *i
 	/*
 	 * Perform checksum checking.
 	 */
-	if( info->checksum != tcpChecksum( beginHeader, endPacket-beginHeader, ipph) )
+	if( info->checksum != tcpChecksum( beginHeader, endPacket-beginHeader, info) )
 		return ERROR_CHECKSUM_MISMATCH;
 
 	/*
