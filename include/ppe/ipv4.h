@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 2015 Simon Schmidt
+ * Copyright(C) 2015-2016 Simon Schmidt
  * 
  * This Source Code Form is subject to the terms of the
  * Mozilla Public License, v. 2.0. If a copy of the MPL
@@ -15,7 +15,7 @@
 typedef uint32_t IPv4Address;
 
 typedef struct{
-	IPv4Address remote,local;
+	IPv4Address address[2];
 	uint8_t ihl; /* must be at least 5 and at most 15 */
 	uint16_t fragmentId;
 	uint8_t fragmentFlags;
@@ -29,6 +29,13 @@ typedef struct{
 	 /* ignored in createPacket */
 	uint16_t length;
 	uint32_t options[10];
+
+	/* defines the order of the address pair for createPacket
+	 * 0 = {source,dest}
+	 * 1 = {dest,source}
+	 * parsePacket will set it to 0.
+	 */
+	unsigned sourcePos : 1;
 } IPV4_PacketInfo;
 
 enum {

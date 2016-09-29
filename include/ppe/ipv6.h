@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 2015 Simon Schmidt
+ * Copyright(C) 2015-2016 Simon Schmidt
  * 
  * This Source Code Form is subject to the terms of the
  * Mozilla Public License, v. 2.0. If a copy of the MPL
@@ -15,7 +15,7 @@
 typedef uint8_t IPv6Address[16];
 
 typedef struct{
-	IPv6Address remote,local;
+	IPv6Address address[2];
 	uint32_t flowLabel;
 	uint8_t trafficClass;
 	union {
@@ -29,6 +29,13 @@ typedef struct{
 
 	 /* ignored in createPacket */
 	uint16_t length;
+
+	/* defines the order of the address pair for createPacket
+	 * 0 = {source,dest}
+	 * 1 = {dest,source}
+	 * parsePacket will set it to 0.
+	 */
+	unsigned sourcePos : 1;
 } IPV6_PacketInfo;
 
 /*

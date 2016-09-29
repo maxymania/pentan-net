@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 2015 Simon Schmidt
+ * Copyright(C) 2015-2016 Simon Schmidt
  * 
  * This Source Code Form is subject to the terms of the
  * Mozilla Public License, v. 2.0. If a copy of the MPL
@@ -157,8 +157,8 @@ int ppe_createPacket_ipv4(ppeBuffer *packet, IPV4_PacketInfo *info) {
 	);
 	header->ttl                  =  info->ttl;
 	header->protocol             =  info->protocol;	
-	header->srcIPv4Addr          =  info->local;
-	header->dstIPv4Addr          =  info->remote;
+	header->srcIPv4Addr          =  info->address[info->sourcePos  ];
+	header->dstIPv4Addr          =  info->address[info->sourcePos^1];
 	for(i=5; i<info->ihl ;++i)
 		((Word*)beginHeader)[i].value = encBE32( info->options[i-5] );
 	header->checksum             =  ipHeaderSum( beginHeader, info->ihl * 2 );
@@ -207,8 +207,9 @@ int ppe_parsePacket_ipv4(ppeBuffer *packet, IPV4_PacketInfo *info) {
 	info->ttl             =  header->ttl;
 	info->protocol        =  header->protocol;
 	info->checksum        =  header->checksum;
-	info->remote          =  header->srcIPv4Addr;
-	info->local           =  header->dstIPv4Addr;
+	info->sourcePos       =  0;
+	info->address[0]      =  header->srcIPv4Addr;
+	info->address[1]      =  header->dstIPv4Addr;
 
 	/*
 	 * Calculate the end of the packet.

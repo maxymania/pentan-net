@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 2015 Simon Schmidt
+ * Copyright(C) 2015-2016 Simon Schmidt
  * 
  * This Source Code Form is subject to the terms of the
  * Mozilla Public License, v. 2.0. If a copy of the MPL
@@ -82,8 +82,8 @@ int ppe_createPacket_ipv6(ppeBuffer *packet, IPV6_PacketInfo *info) {
 	header->payloadLength              =   encBE16( (uint16_t) length );
 	header->nextHeader                 =   info->protocol;
 	header->hopLimit                   =   info->ttl;
-	*((IPv6Addr*)header->srcIPv6Addr)  =   *((IPv6Addr*)info->local);
-	*((IPv6Addr*)header->dstIPv6Addr)  =   *((IPv6Addr*)info->remote);
+	*((IPv6Addr*)header->srcIPv6Addr)  =   *((IPv6Addr*)info->address[info->sourcePos  ]);
+	*((IPv6Addr*)header->dstIPv6Addr)  =   *((IPv6Addr*)info->address[info->sourcePos^1]);
 
 	/*
 	 * Assign the new boundaries to the packet.
@@ -131,13 +131,14 @@ int ppe_parsePacket_ipv6(ppeBuffer *packet, IPV6_PacketInfo *info) {
 	/*
 	 * Extract all informations from the packet header.
 	 */
-	info->flowLabel             =   (verTcFlowLabel & 0xfffff);
-	info->trafficClass          =   ((verTcFlowLabel>>20) & 0xff);
-	info->length                =   length;
-	info->protocol              =   header->nextHeader;
-	info->ttl                   =   header->hopLimit;
-	*((IPv6Addr*)info->remote)  =   *((IPv6Addr*)header->srcIPv6Addr);
-	*((IPv6Addr*)info->local)   =   *((IPv6Addr*)header->dstIPv6Addr);
+	info->flowLabel                =   (verTcFlowLabel & 0xfffff);
+	info->trafficClass             =   ((verTcFlowLabel>>20) & 0xff);
+	info->length                   =   length;
+	info->protocol                 =   header->nextHeader;
+	info->ttl                      =   header->hopLimit;
+	info->sourcePos                =   0;
+	*((IPv6Addr*)info->address[0]) =   *((IPv6Addr*)header->srcIPv6Addr);
+	*((IPv6Addr*)info->address[1]) =   *((IPv6Addr*)header->dstIPv6Addr);
 
 	/*
 	 * Assign the new boundaries to the packet.

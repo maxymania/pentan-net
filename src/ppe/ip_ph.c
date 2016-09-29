@@ -1,5 +1,5 @@
 /*
- * Copyright(C) 2015 Simon Schmidt
+ * Copyright(C) 2015-2016 Simon Schmidt
  * 
  * This Source Code Form is subject to the terms of the
  * Mozilla Public License, v. 2.0. If a copy of the MPL
@@ -77,8 +77,8 @@ uint64_t ppe_ipphChecksum(IPPH_Struct *ipph, uintptr_t size){
 		 * Calculating the checksum of the IPv4 Pseudoheader.
 		 * See figure 1.
 		 */
-		checksum += (ipph->ipv4.remote & 0xffff) + ((ipph->ipv4.remote>>16) & 0xffff);
-		checksum += (ipph->ipv4.local  & 0xffff) + ((ipph->ipv4.local>>16)  & 0xffff);
+		checksum += (ipph->ipv4.address[0] & 0xffff) + ((ipph->ipv4.address[0]>>16) & 0xffff);
+		checksum += (ipph->ipv4.address[1] & 0xffff) + ((ipph->ipv4.address[1]>>16) & 0xffff);
 		checksum += encBE16(ipph->ipv4.protocol);
 		checksum += encBE16(size&0xffff);
 		break;
@@ -88,7 +88,7 @@ uint64_t ppe_ipphChecksum(IPPH_Struct *ipph, uintptr_t size){
 		 * Calculating the checksum of the IPv6 Pseudoheader.
 		 * See figure 2.
 		 */
-		ptr = (uint16_t*) ipph->ipv6.remote;
+		ptr = (uint16_t*) ipph->ipv6.address[0];
 		checksum += ptr[0];
 		checksum += ptr[1];
 		checksum += ptr[2];
@@ -97,7 +97,7 @@ uint64_t ppe_ipphChecksum(IPPH_Struct *ipph, uintptr_t size){
 		checksum += ptr[5];
 		checksum += ptr[6];
 		checksum += ptr[7];
-		ptr = (uint16_t*) ipph->ipv6.local;
+		ptr = (uint16_t*) ipph->ipv6.address[1];
 		checksum += ptr[0];
 		checksum += ptr[1];
 		checksum += ptr[2];
@@ -111,6 +111,8 @@ uint64_t ppe_ipphChecksum(IPPH_Struct *ipph, uintptr_t size){
 		checksum += encBE16(ipph->ipv6.protocol);
 		break;
 	}
+
+	while(checksum>>16) checksum = (checksum&0xffff)+(checksum>>16);
 
 	/*
 	 * When in doubt, produce the hash of an empty string.
