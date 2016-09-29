@@ -110,7 +110,7 @@ int ppe_createPacket_udp(ppeBuffer *packet, UDP_PacketInfo *info) {
 	header                   =  beginHeader;
 	header->sourcePort       =  info->ports[info->sourcePos  ];
 	header->destPort         =  info->ports[info->sourcePos^1];
-	header->length           =  encBE32( info->length );
+	header->length           =  encBE16( info->length );
 
 	/*
 	 * Calculate the UDP Checksum.
@@ -148,7 +148,7 @@ int ppe_parsePacket_udp(ppeBuffer *packet, UDP_PacketInfo *info) {
 	info->sourcePos   =   0;
 	info->ports[0]    =   header->sourcePort;
 	info->ports[1]    =   header->destPort;
-	info->length      =   decBE32( header->length );
+	info->length      =   decBE16( header->length );
 	info->checksum    =   header->checksum;
 
 	/*
