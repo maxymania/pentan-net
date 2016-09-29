@@ -28,8 +28,8 @@ typedef net_struct_begin{
 typedef void* Pointer;
 
 static inline uint16_t udpChecksum(uint16_t* content, uintptr_t size, UDP_PacketInfo *info){
-	int i;
-	uint64_t check = 0;
+	int i = 0;
+	uint32_t check = 0;
 
 	check  = info->phCheckSum.headerCheckSum;
 	check += encBE16(size&0xFFFF);
@@ -51,6 +51,15 @@ static inline uint16_t udpChecksum(uint16_t* content, uintptr_t size, UDP_Packet
 		check+=*content;
 		++content;
 		size-=2;
+
+		/*
+		 * Prevent the check integer from overflowing.
+		 */
+		if(++i>0xfff0){
+			check = (check&0xffff)+(check>>16);
+			check = (check&0xffff)+(check>>16);
+			i=0;
+		}
 	}
 
 	if(size){
@@ -60,7 +69,8 @@ static inline uint16_t udpChecksum(uint16_t* content, uintptr_t size, UDP_Packet
 	/*
 	 * Folds the result.
 	 */
-	while(check>>16) check = (check&0xffff)+(check>>16);
+	check = (check&0xffff)+(check>>16);
+	check = (check&0xffff)+(check>>16);
 	return ~check;
 }
 
