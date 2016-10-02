@@ -10,7 +10,6 @@
 #define PPE_ICMP_H
 #include <ppe/stdint.h>
 #include <ppe/buffer.h>
-#include <ppe/ipv4.h>
 #include <ppe/ethernet.h>
 #include <ppe/phlite.h>
 

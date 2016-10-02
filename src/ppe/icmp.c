@@ -22,6 +22,7 @@ typedef net_struct_begin{
 	uint16_t checksum;
 } net_struct_end IcmpPacketHeader;
 
+typedef void* Pointer;
 
 static inline uint16_t icmpChecksum(uint16_t* content, uintptr_t size, ICMP_PacketInfo *info){
 	int i = 0;
@@ -123,7 +124,7 @@ int ppe_parsePacket_icmp(ppeBuffer *packet, ICMP_PacketInfo *info){
 	/*
 	 * Bounds-check header.
 	 */
-	endHeader      =   beginHeader + sizeof(ArpPacketHeader);
+	endHeader      =   beginHeader + sizeof(IcmpPacketHeader);
 	if( endHeader > endPacket ) return ERROR_BUFFER_OVERFLOW;
 
 	/*
@@ -136,7 +137,7 @@ int ppe_parsePacket_icmp(ppeBuffer *packet, ICMP_PacketInfo *info){
 	/*
 	 * Perform checksum checking.
 	 */
-	if( info->checksum != tcpChecksum( beginHeader, endPacket-beginHeader, info) )
+	if( info->checksum != icmpChecksum( beginHeader, endPacket-beginHeader, info) )
 		return ERROR_CHECKSUM_MISMATCH;
 
 	/*
