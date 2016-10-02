@@ -5,6 +5,7 @@ CCFLAGS="-Iinclude -DHOST_ENDIAN_LITTLE -DFAST_BYTE_SWAP"
 gcc -c test1.c $CCFLAGS
 
 gcc -c src/ppe/ethernet.c $CCFLAGS
+gcc -c src/ppe/arp.c $CCFLAGS
 gcc -c src/ppe/ipv4.c $CCFLAGS
 gcc -c src/ppe/ipv6.c $CCFLAGS
 gcc -c src/ppe/tcp.c $CCFLAGS
