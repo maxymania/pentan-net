@@ -20,7 +20,7 @@ typedef struct{
 } ICMP_PacketInfo;
 
 /*
- * @brief creates an ARP Packet
+ * @brief creates an ICMP Packet
  * @param  packet  The Packet Buffer.
  * @param  info    Frame Informations
  * @return 0 on success, !=0 otherwise
@@ -30,7 +30,7 @@ typedef struct{
 int ppe_createPacket_icmp(ppeBuffer *packet, ICMP_PacketInfo *info);
 
 /*
- * @brief parses an ARP Packet
+ * @brief parses an ICMP Packet
  * @param  packet  The Packet Buffer.
  * @param  info    Frame Informations
  * @return 0 on success, !=0 otherwise
