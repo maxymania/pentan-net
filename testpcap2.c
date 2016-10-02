@@ -21,6 +21,7 @@
 
 #include <ppe/ethernet.h>
 #include <ppe/ipv4.h>
+#include <ppe/ipv6.h>
 #include <ppe/ip.h>
 #include <ppe/ip_ph.h>
 #include <ppe/phlite.h>
@@ -53,28 +54,39 @@ void my_callback(u_char *useless,const struct pcap_pkthdr* pkthdr,const u_char*
 	//	fprintf(stdout,"%02x",(int)(packet[i]));
 	
 	if(result)goto my_error;
+	int layer4P;
 
 	switch(eth_info.type){
 	case Eth_IPv4:
 		fprintf(stdout,"IPv4 ");
 		ip_info.ipphType = IPPH_IPv4;
 		result = ppe_parsePacket_ipv4(&BUFFER,&ip_info.ipv4);
+		layer4P = ip_info.ipv4.protocol;
+		goto generic_IP;
+	case Eth_IPv6:
+		fprintf(stdout,"IPv6 ");
+		ip_info.ipphType = IPPH_IPv6;
+		result = ppe_parsePacket_ipv6(&BUFFER,&ip_info.ipv6);
+		layer4P = ip_info.ipv6.protocol;
+	generic_IP:
 		ppe_ipphChecksum(&ip_info,&ip_phsum);
 		if(result)goto my_error;
-		switch(ip_info.ipv4.protocol) {
+		switch(layer4P) {
 			case IPProto_TCP:
 				tcp_info.phCheckSum = ip_phsum;
 				result = ppe_parsePacket_tcp(&BUFFER,&tcp_info);
+				fprintf(stdout,"TCP ");
 				if(result)goto my_error;
-				fprintf(stdout," TCP [%d->%d]"
+				fprintf(stdout,"[%d->%d]"
 								,(int)tcp_info.ports[0]
 								,(int)tcp_info.ports[1]);
 				break;
 			case IPProto_UDP:
 				udp_info.phCheckSum = ip_phsum;
 				result = ppe_parsePacket_udp(&BUFFER,&udp_info);
+				fprintf(stdout,"UDP ");
 				if(result)goto my_error;
-				fprintf(stdout," UDP [%d->%d]"
+				fprintf(stdout,"[%d->%d]"
 								,(int)udp_info.ports[0]
 								,(int)udp_info.ports[1]);
 				break;
