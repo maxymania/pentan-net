@@ -5,6 +5,7 @@ CCFLAGS="-Iinclude -DHOST_ENDIAN_LITTLE -DFAST_BYTE_SWAP"
 gcc -c test1.c $CCFLAGS
 
 gcc -c src/ppe/icmp.c $CCFLAGS
+gcc -c src/ppe/icmp4.c $CCFLAGS
 gcc -c src/ppe/ethernet.c $CCFLAGS
 gcc -c src/ppe/arp.c $CCFLAGS
 gcc -c src/ppe/ipv4.c $CCFLAGS
@@ -14,6 +15,6 @@ gcc -c src/ppe/udp.c $CCFLAGS
 gcc -c src/ppe/ip_ph.c $CCFLAGS
 gcc -c src/ppe/tcp_control.c $CCFLAGS
 
-gcc testpcap2.c -Iinclude ethernet.o ipv4.o ipv6.o tcp.o ip_ph.o udp.o -lpcap -o testpcap2
+gcc testpcap2.c -Iinclude ethernet.o ipv4.o ipv6.o icmp4.o icmp.o tcp.o ip_ph.o udp.o -lpcap -o testpcap2
 
 
