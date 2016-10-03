@@ -259,7 +259,7 @@ int ppe_parsePacket_icmp4(ppeBuffer *packet, ICMPv4_Arguments *info){
 	case FNET_ICMP_SOURCEQUENCH:
 		info->payloadType = ICMPv4_Pld_IpHeader;
 		info->messageType = ICMPv4_Msg_Notification;
-		info->mesgMeaning = ICMPv4_Mng_ParameterProblems;
+		info->mesgMeaning = ICMPv4_Mng_SourceQuench;
 		break;
 	
 	case FNET_ICMP_ROUTERADVERT:
