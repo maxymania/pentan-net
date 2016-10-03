@@ -214,6 +214,12 @@ int ppe_parsePacket_icmp4(ppeBuffer *packet, ICMPv4_Arguments *info){
 		case FNET_ICMP_UNREACHABLE_NEEDFRAG:
 			info->mesgMeaning = ICMPv4_Mng_MessageSizeTooBig;
 			break;
+		
+		/*
+		 * When in Doubt, discard.
+		 */
+		default:
+			info->mesgMeaning = ICMPv4_Mng_None;
 		}
 		break;
 	case FNET_ICMP_TSTAMP:
