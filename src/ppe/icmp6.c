@@ -149,33 +149,33 @@ int ppe_parsePacket_icmp6(ppeBuffer *packet, ICMPv6_Arguments *info){
 	case ICMPv6_NDP_ROUTER_SOLICIT:
 		info->payloadType = ICMPv6_Pld_Echo;
 		info->messageType = ICMPv6_Msg_Notification;
-		info->mesgMeaning = ICMPv6_Mng_RouterAdvertisement;
-		break;
-	case ICMPv6_NDP_ROUTER_ADVERT:
-		info->payloadType = ICMPv6_Pld_Echo;
-		info->messageType = ICMPv6_Msg_Notification;
 		info->mesgMeaning = ICMPv6_Mng_RouterSolicitation;
 		break;
-	case ICMPv6_NDP_NEIGHBOR_SOLICIT:
-		info->payloadType = ICMPv6_Pld_Echo;
+	case ICMPv6_NDP_ROUTER_ADVERT:
+		info->payloadType = ICMPv6_Pld_RouterAdvertisement;
 		info->messageType = ICMPv6_Msg_Notification;
-		info->mesgMeaning = ICMPv6_Mng_NeighborAdvertisement;
+		info->mesgMeaning = ICMPv6_Mng_RouterAdvertisement;
 		break;
-	case ICMPv6_NDP_NEIGHBOR_ADVERT:
-		info->payloadType = ICMPv6_Pld_Echo;
+	case ICMPv6_NDP_NEIGHBOR_SOLICIT:
+		info->payloadType = ICMPv6_Pld_SingleAddress;
 		info->messageType = ICMPv6_Msg_Notification;
 		info->mesgMeaning = ICMPv6_Mng_NeighborSolicitation;
 		break;
+	case ICMPv6_NDP_NEIGHBOR_ADVERT:
+		info->payloadType = ICMPv6_Pld_SingleAddress;
+		info->messageType = ICMPv6_Msg_Notification;
+		info->mesgMeaning = ICMPv6_Mng_NeighborAdvertisement;
+		break;
 	case ICMPv6_NDP_REDIRECT:
-		info->payloadType = ICMPv6_Pld_Echo;
+		info->payloadType = ICMPv6_Pld_DualAddress;
 		info->messageType = ICMPv6_Msg_Notification;
 		info->mesgMeaning = ICMPv6_Mng_Redirect;
 		break;
 	}
-	
+
 	beginPacket = packet->position;
 	endPacket = packet->limit;
-	
+
 	switch( info->payloadType ) {
 	case ICMPv6_Pld_Echo:
 
@@ -193,10 +193,40 @@ int ppe_parsePacket_icmp6(ppeBuffer *packet, ICMPv6_Arguments *info){
 
 		content             =  beginPacket;
 		info->restOfHeader  =  content[0];
-		
+
 		*((IPv6Addr*)info->ipAddress[0]) = *((IPv6Addr*)ipHeader->srcIPv6Addr);
 		*((IPv6Addr*)info->ipAddress[1]) = *((IPv6Addr*)ipHeader->dstIPv6Addr);
-		
+
+		packet->position    =  endPayload;
+		break;
+	case ICMPv6_Pld_RouterAdvertisement:
+		endPayload = beginPacket+12;
+		if(endPayload > endPacket) return ERROR_BUFFER_OVERFLOW;
+
+		content              =  beginPacket;
+		info->restOfHeader   =  decBE32(content[0]); /* We want the options in native byte-order */
+		info->reachTimeout   =  decBE32(content[1]);
+		info->resolvTimeout  =  decBE32(content[2]);
+		info->routerLifeTime = info->restOfHeader&0xFFFF;
+		info->advFlags       = (info->restOfHeader>>16)&0xFF;
+		info->hopLimit       = (info->restOfHeader>>24)&0xFF;
+
+		packet->position     =  endPayload;
+		break;
+	case ICMPv6_Pld_DualAddress:
+		endPayload = beginPacket+4;
+		if((endPayload+(sizeof(IPv6Addr)*2)) > endPacket) return ERROR_BUFFER_OVERFLOW;
+
+		*((IPv6Addr*)info->ipAddress[1]) = ((IPv6Addr*)endPayload)[1];
+
+	case ICMPv6_Pld_SingleAddress:
+		endPayload = beginPacket+4;
+		if((endPayload+sizeof(IPv6Addr)) > endPacket) return ERROR_BUFFER_OVERFLOW;
+
+		content             =  beginPacket;
+		info->restOfHeader  =  decBE32(content[0]); /* We want the options in native byte-order */
+
+		*((IPv6Addr*)info->ipAddress[0]) = *((IPv6Addr*)endPayload);
 		packet->position    =  endPayload;
 		break;
 	}

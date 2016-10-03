@@ -15,6 +15,9 @@
 enum ICMPv6_payload{
 	ICMPv6_Pld_IpHeader,
 	ICMPv6_Pld_Echo,
+	ICMPv6_Pld_RouterAdvertisement,
+	ICMPv6_Pld_SingleAddress,        /* Neighbor Advertisement & Solicitation */
+	ICMPv6_Pld_DualAddress,          /* Redirect */
 };
 
 enum ICMPv6_message{
@@ -49,6 +52,11 @@ typedef struct{
 	ICMP_PacketInfo icmp;
 	
 	uint32_t restOfHeader; /* < The rest of header in network order. */
+	uint32_t reachTimeout;
+	uint32_t resolvTimeout;
+	uint16_t routerLifeTime;
+	uint8_t  advFlags;
+	uint8_t  hopLimit;
 	
 	/*
 	 * used by ppe_parsePacket_icmp6.
