@@ -47,6 +47,8 @@ int ppe_createPacket_eth(ppeBuffer *packet, Eth_FrameInfo *info,uint8_t flags) {
 	Pointer beginHeader, endHeader, beginFooter, endFooter;
 	EthernetFrameHeader *header;
 	EthernetFrameFooter *footer;
+	uintptr_t length;
+	uint8_t *padding;
 
 	/*
 	 * Unpack memory address of the start and end of the packet.
@@ -76,6 +78,15 @@ int ppe_createPacket_eth(ppeBuffer *packet, Eth_FrameInfo *info,uint8_t flags) {
 	*((MacAddr*)header->srcMacAddr)   =   *((MacAddr*)info->local);
 	*((MacAddr*)header->dstMacAddr)   =   *((MacAddr*)info->remote);
 	header->type                      =   encBE16( info->type );
+
+	/*
+	 * The data field must contain at least 46 octets.
+	 * If the data packaged into the datagram contains less than 46 octets,
+	 * then the remaining bits are padded as zeros.
+	 */
+	length = endFooter-beginHeader;
+	padding = beginHeader;
+	for(;length < 46;length++) padding[length] = 0;
 
 	/*
 	 * Calculate the CRC32 sum and construct the footer.
