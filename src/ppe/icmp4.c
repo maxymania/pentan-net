@@ -129,12 +129,18 @@ int ppe_createAddressMask_icmp4(ppeBuffer *packet, ICMPv4_Arguments *args){
 
 int ppe_parsePacket_icmp4(ppeBuffer *packet, ICMPv4_Arguments *info){
 	int result;
-	uint8_t type,code;
+	uint8_t type,code,ihl;
 	uint32_t* content;
-	uint16_t* portPtr;
-	int ihl;
-	//ppeBuffer tempPkt;
+	union{
+		uint32_t* u32;
+		uint16_t* u16;
+		uint8_t* u8;
+		void* raw;
+	} ptr;
 	Pointer beginPacket,endPayload,endPacket;
+	enum ICMPv4_IpValidityLevel ipvl;
+
+
 	result = ppe_parsePacket_icmp(packet,&(info->icmp));
 	if(result) return result;
 	
@@ -331,37 +337,36 @@ int ppe_parsePacket_icmp4(ppeBuffer *packet, ICMPv4_Arguments *info){
 
 		content             =  beginPacket;
 		info->restOfHeader  =  content[0];
+		ipvl                =  ICMPv4_Ivl_None;
 
-		if((endPayload+1) > endPacket) goto pld_ip_proto;
+		ptr.raw = endPayload;
 
-		ihl = (0xf & *((uint8_t*)endPayload));
+		if((endPayload+10) > endPacket) goto pld_ip_end;
 
-		if((endPayload+10) > endPacket) goto pld_ip_proto;
+		info->ipProtoc      =  ptr.u8[9];
+		ipvl                =  ICMPv4_Ivl_Protoc;
 
-		info->ipProtoc      = *((uint8_t*)(endPayload+9));
+		if((endPayload+20) > endPacket) goto pld_ip_end;
+		info->ipAddress[0]  = ptr.u32[3];
+		info->ipAddress[1]  = ptr.u32[4];
+ 
+		ipvl                =  ICMPv4_Ivl_Address;
 
-		if((endPayload+20) > endPacket) goto pld_ip_address;
-		info->ipAddress[0]  = content[4];
-		info->ipAddress[1]  = content[5];
+		ihl = 0xf & *ptr.u8;
+ 
+		ptr.raw += (ihl*4);
+ 
+		if((ptr.raw+4) > endPacket) goto pld_ip_end;
+		info->ports[0]      = ptr.u16[0];
+		info->ports[1]      = ptr.u16[1];
+ 
+		ipvl                =  ICMPv4_Ivl_Ports;
 
-		portPtr = (uint16_t*)(endPayload+(ihl*4));
-		if((Pointer)(&portPtr[2]) > endPacket) goto pld_ip_ports;
-		info->ports[0]      = portPtr[0];
-		info->ports[1]      = portPtr[1];
-
-		goto pld_ip_end;
-	pld_ip_proto:
-		info->ipProtoc      = 0;
-	pld_ip_address:
-		info->ipAddress[0]  = 0;
-		info->ipAddress[1]  = 0;
-	pld_ip_ports:
-		info->ports[0]      = 0;
-		info->ports[1]      = 0;
 	pld_ip_end:
-		packet->position = endPayload;
+		info->ipvl          = ipvl;
+		packet->position    = endPayload;
 		break;
-		
+
 	/*
 	 * On those headers, don't parse the Payload;
 	 */

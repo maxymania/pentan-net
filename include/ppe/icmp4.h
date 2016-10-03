@@ -43,6 +43,12 @@ enum ICMPv4_meaning{
 	ICMPv4_Mng_RouterSolicitation,
 };
 
+enum ICMPv4_IpValidityLevel {
+	ICMPv4_Ivl_None = 0,
+	ICMPv4_Ivl_Protoc = 1,
+	ICMPv4_Ivl_Address = 2,
+	ICMPv4_Ivl_Ports   = 3,
+};
 
 typedef struct{
 	ICMP_PacketInfo icmp;
@@ -63,9 +69,10 @@ typedef struct{
 	uint8_t  ipProtoc;
 	uint8_t  inputType,inputCode;
 	
-	enum ICMPv4_payload payloadType : 3;
-	enum ICMPv4_message messageType : 2;
-	enum ICMPv4_meaning mesgMeaning : 4;
+	enum ICMPv4_payload payloadType  : 4;
+	enum ICMPv4_message messageType  : 4;
+	enum ICMPv4_meaning mesgMeaning  : 4;
+	enum ICMPv4_IpValidityLevel ipvl : 4;
 } ICMPv4_Arguments;
 
 
