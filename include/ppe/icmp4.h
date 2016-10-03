@@ -68,6 +68,7 @@ typedef struct{
 	uint16_t ports[2];
 	uint8_t  ipProtoc;
 	uint8_t  inputType,inputCode;
+	uint8_t  ipHdrLen;
 	
 	enum ICMPv4_payload payloadType  : 4;
 	enum ICMPv4_message messageType  : 4;

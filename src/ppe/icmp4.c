@@ -343,28 +343,28 @@ int ppe_parsePacket_icmp4(ppeBuffer *packet, ICMPv4_Arguments *info){
 
 		if((endPayload+10) > endPacket) goto pld_ip_end;
 
+		ihl                 =  0xf & *ptr.u8;
+		info->ipHdrLen      =  ihl*4;
 		info->ipProtoc      =  ptr.u8[9];
 		ipvl                =  ICMPv4_Ivl_Protoc;
 
 		if((endPayload+20) > endPacket) goto pld_ip_end;
-		info->ipAddress[0]  = ptr.u32[3];
-		info->ipAddress[1]  = ptr.u32[4];
+		info->ipAddress[0]  =  ptr.u32[3];
+		info->ipAddress[1]  =  ptr.u32[4];
  
 		ipvl                =  ICMPv4_Ivl_Address;
 
-		ihl = 0xf & *ptr.u8;
- 
-		ptr.raw += (ihl*4);
- 
+		ptr.raw            +=  ihl*4;
+
 		if((ptr.raw+4) > endPacket) goto pld_ip_end;
-		info->ports[0]      = ptr.u16[0];
-		info->ports[1]      = ptr.u16[1];
- 
+		info->ports[0]      =  ptr.u16[0];
+		info->ports[1]      =  ptr.u16[1];
+
 		ipvl                =  ICMPv4_Ivl_Ports;
 
 	pld_ip_end:
-		info->ipvl          = ipvl;
-		packet->position    = endPayload;
+		info->ipvl          =  ipvl;
+		packet->position    =  endPayload;
 		break;
 
 	/*
