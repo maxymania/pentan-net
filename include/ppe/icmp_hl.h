@@ -50,7 +50,7 @@ typedef struct{
  * @param  info    Frame Informations
  * @return 0 on success, !=0 otherwise
  * 
- * This function Parses an ARP 
+ * This function makes an Decision regarding an incoming ICMPv4 message.
  */
 int ppe_inputCtrl_icmp4(ICMPv4_Arguments *info, ICMP_Command* cmd);
 
