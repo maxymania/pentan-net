@@ -76,7 +76,6 @@ typedef struct{
 	enum ICMPv4_IpValidityLevel ipvl : 4;
 } ICMPv4_Arguments;
 
-
 /*
  * @brief creates an ICMPv4 Packet with IP header and 8 follow-on bytes
  * @param  packet  The Packet Buffer.
@@ -111,7 +110,7 @@ int ppe_createAddressMask_icmp4(ppeBuffer *packet, ICMPv4_Arguments *args);
 
 
 /*
- * @brief parses an ARP Packet
+ * @brief parses an ICMPv4 Packet
  * @param  packet  The Packet Buffer.
  * @param  info    Frame Informations
  * @return 0 on success, !=0 otherwise

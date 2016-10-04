@@ -52,4 +52,7 @@
 #define ICMPv6_NDP_REDIRECT          137
 
 
+/* The default MTU in IPv6 */
+#define IPv6_DEFAULT_MTU    1280
+
 

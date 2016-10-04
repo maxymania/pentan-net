@@ -71,47 +71,24 @@ typedef struct{
 	enum ICMPv6_meaning mesgMeaning  : 5;
 } ICMPv6_Arguments;
 
-#if 0
+
 /*
- * @brief creates an ICMPv4 Packet with IP header and 8 follow-on bytes
+ * @brief creates an ICMPv6 Packet with IP header and 8 follow-on bytes
  * @param  packet  The Packet Buffer.
  * @param  info    Frame Informations
  * @return 0 on success, !=0 otherwise
  * 
- * This function creates an ICMPv4-packet with IP header and 8 follow-on bytes.
+ * This function creates an ICMPv6-packet with IP header and 8 follow-on bytes.
  */
 int ppe_createDatagramResponse_icmp6(ppeBuffer *packet, ICMPv6_Arguments *args);
 
-
 /*
- * @brief creates an ICMPv4 Packet with Timestamp
+ * @brief parses an ICMPv6 Packet
  * @param  packet  The Packet Buffer.
  * @param  info    Frame Informations
  * @return 0 on success, !=0 otherwise
  * 
- * This function creates an ICMPv4-packet with Timestamp.
- */
-int ppe_createTimeStamp_icmp6(ppeBuffer *packet, ICMPv6_Arguments *args);
-
-
-/*
- * @brief creates an ICMPv4 Packet with Address mask
- * @param  packet  The Packet Buffer.
- * @param  info    Frame Informations
- * @return 0 on success, !=0 otherwise
- * 
- * This function creates an ICMPv4-packet with Address mask.
- */
-int ppe_createAddressMask_icmp6(ppeBuffer *packet, ICMPv6_Arguments *args);
-#endif
-
-/*
- * @brief parses an ARP Packet
- * @param  packet  The Packet Buffer.
- * @param  info    Frame Informations
- * @return 0 on success, !=0 otherwise
- * 
- * This function parses an ICMPv4-packet and extracts all header informations.
+ * This function parses an ICMPv6-packet and extracts all header informations.
  */
 int ppe_parsePacket_icmp6(ppeBuffer *packet, ICMPv6_Arguments *info);
 

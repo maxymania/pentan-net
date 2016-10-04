@@ -38,6 +38,49 @@ typedef void* Pointer;
 
 #include "icmp6_priv.h"
 
+enum{
+	ICMPv6_MTU = IPv6_DEFAULT_MTU - (sizeof(IPv6PacketHeader)+8),
+};
+
+int ppe_createDatagramResponse_icmp6(ppeBuffer *packet, ICMPv6_Arguments *args){
+	Pointer beginPacket,endPacket;
+	uintptr_t length;
+	
+	beginPacket = packet->position;
+	endPacket   = packet->limit;
+	length      = endPacket-beginPacket;
+	
+	if(ICMPv6_MTU < length){
+		endPacket = beginPacket+ICMPv6_MTU;
+		packet->limit = endPacket;
+	}
+	
+	/*
+	 * Prepend 4 bytes Rest-Of-Header to the packet.
+	 */
+	beginPacket-=4;
+	
+	/*
+	 * Bounds-Check the new Position.
+	 */
+	if(beginPacket < packet->begin) return ERROR_BUFFER_OVERFLOW;
+	
+	/*
+	 * Add Rest-Of-Header field.
+	 */
+	*((uint32_t*)beginPacket) = args->restOfHeader;
+	
+	/*
+	 * Update the Packet's bounds.
+	 */
+	packet->position = beginPacket;
+	
+	/*
+	 * Create the ICMP packet.
+	 */
+	return ppe_createPacket_icmp(packet,&(args->icmp));
+}
+
 int ppe_parsePacket_icmp6(ppeBuffer *packet, ICMPv6_Arguments *info){
 	int result;
 	uint8_t type,code;
