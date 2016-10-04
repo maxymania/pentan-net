@@ -11,6 +11,7 @@
 #include <ppe/stdint.h>
 #include <ppe/errornum.h>
 #include <ppe/endianess.h>
+#include <ppe/ip.h>
 
 /*
  *    The first 4 bytes of the ICMP-Header. The next 4 bytes are concidered 
@@ -30,7 +31,13 @@ static inline uint16_t icmpChecksum(uint16_t* content, uintptr_t size, ICMP_Pack
 
 	check  = info->phCheckSum.headerCheckSum;
 	check += encBE16(size&0xFFFF);
-	if(info->phCheckSum.modeIsV6) check += encBE16((size>>16)&0xFFFF);
+	
+	if(info->phCheckSum.modeIsV6){
+		check += encBE16((size>>16)&0xFFFF);
+		check += encBE16(IPProto_ICMPv6);
+	}else{
+		check += encBE16(IPProto_ICMPv4);
+	}
 
 
 	/*

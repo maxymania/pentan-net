@@ -12,7 +12,7 @@
 #include <ppe/errornum.h>
 #include <ppe/udp.h>
 #include <ppe/endianess.h>
-//#include <ppe/_lib_tcpsum.h>
+#include <ppe/ip.h>
 
 /*
  *    UdpPacketHeader
@@ -33,6 +33,7 @@ static inline uint16_t udpChecksum(uint16_t* content, uintptr_t size, UDP_Packet
 
 	check  = info->phCheckSum.headerCheckSum;
 	check += encBE16(size&0xFFFF);
+	check += encBE16(IPProto_UDP);
 	if(info->phCheckSum.modeIsV6) check += encBE16((size>>16)&0xFFFF);
 
 	/*

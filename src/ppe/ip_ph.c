@@ -69,6 +69,8 @@ void ppe_ipphChecksum(IPPH_Struct *ipph, IPPH_Info *info){
 	 * As the checksum is just an addition of all 16-bit words,
 	 * the order doesn't matter anymore. So, if the source and destination
 	 * IP-addresses are swapped, the resulting checksum is still the same.
+	 *
+	 * The 'Protocol' field will be set by the Layer 4 Checksum routine.
 	 */
 	switch(ipph->ipphType){
 	case IPPH_IPv4:
@@ -79,7 +81,6 @@ void ppe_ipphChecksum(IPPH_Struct *ipph, IPPH_Info *info){
 		 */
 		checksum += (ipph->ipv4.address[0] & 0xffff) + ((ipph->ipv4.address[0]>>16) & 0xffff);
 		checksum += (ipph->ipv4.address[1] & 0xffff) + ((ipph->ipv4.address[1]>>16) & 0xffff);
-		checksum += encBE16(ipph->ipv4.protocol);
 		info->modeIsV6 = 0;
 		break;
 	case IPPH_IPv6:
@@ -106,7 +107,6 @@ void ppe_ipphChecksum(IPPH_Struct *ipph, IPPH_Info *info){
 		checksum += ptr[5];
 		checksum += ptr[6];
 		checksum += ptr[7];
-		checksum += encBE16(ipph->ipv6.protocol);
 		info->modeIsV6 = 1;
 		break;
 	}
