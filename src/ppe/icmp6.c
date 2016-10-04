@@ -8,6 +8,7 @@
  */
 #include <ppe/icmp6.h>
 //#include <ppe/ipv6.h>
+#include <ppe/ipv6_ext.h>
 #include <ppe/icmp.h>
 #include <ppe/packing.h>
 #include <ppe/stdint.h>
@@ -83,9 +84,9 @@ int ppe_createDatagramResponse_icmp6(ppeBuffer *packet, ICMPv6_Arguments *args){
 
 int ppe_parsePacket_icmp6(ppeBuffer *packet, ICMPv6_Arguments *info){
 	int result;
-	uint8_t type,code;
+	uint8_t type,code,nextHeader;
 	uint32_t *content;
-	Pointer beginPacket,endPayload,endPacket;
+	Pointer beginPacket,endPayload,ipPayload,endPacket;
 	IPv6PacketHeader *ipHeader;
 
 	result = ppe_parsePacket_icmp(packet,&(info->icmp));
@@ -231,14 +232,44 @@ int ppe_parsePacket_icmp6(ppeBuffer *packet, ICMPv6_Arguments *info){
 	case ICMPv6_Pld_IpHeader:
 
 		endPayload = beginPacket+4;
-		if((endPayload+sizeof(IPv6PacketHeader)) > endPacket) return ERROR_BUFFER_OVERFLOW;
-		ipHeader = endPayload;
+		if( endPayload > endPacket ) return ERROR_BUFFER_OVERFLOW;
 
 		content             =  beginPacket;
 		info->restOfHeader  =  content[0];
 
+		if((endPayload+sizeof(IPv6PacketHeader)) > endPacket){
+			packet->position    =  endPayload;
+			info->ipvl  = ICMPv6_Ivl_None;
+			break;
+		}
+		ipHeader = endPayload;
+
 		*((IPv6Addr*)info->ipAddress[0]) = *((IPv6Addr*)ipHeader->srcIPv6Addr);
 		*((IPv6Addr*)info->ipAddress[1]) = *((IPv6Addr*)ipHeader->dstIPv6Addr);
+
+		nextHeader          = ipHeader->nextHeader;
+		ipPayload           = endPayload+sizeof(IPv6PacketHeader);
+
+		info->ipHdrLen      = sizeof(IPv6PacketHeader);
+
+		result = ppe_jumpExtensions_ipv6(&nextHeader,&ipPayload,endPacket);
+		if( result ){
+			info->ipvl  = ICMPv6_Ivl_Address;
+			packet->position    =  endPayload;
+			break;
+		}
+
+		info->ipHdrLen      = ipPayload-endPayload;
+
+		if( (ipPayload+4)  > endPacket ){
+			info->ipvl  = ICMPv6_Ivl_Address;
+			packet->position    =  endPayload;
+			break;
+		}
+
+		info->ipvl  = ICMPv6_Ivl_Ports;
+		info->ports[0] = ((uint16_t*)ipPayload)[0];
+		info->ports[1] = ((uint16_t*)ipPayload)[1];
 
 		packet->position    =  endPayload;
 		break;
@@ -246,15 +277,15 @@ int ppe_parsePacket_icmp6(ppeBuffer *packet, ICMPv6_Arguments *info){
 		endPayload = beginPacket+12;
 		if(endPayload > endPacket) return ERROR_BUFFER_OVERFLOW;
 
-		content              =  beginPacket;
-		info->restOfHeader   =  decBE32(content[0]); /* We want the options in native byte-order */
-		info->reachTimeout   =  decBE32(content[1]);
-		info->resolvTimeout  =  decBE32(content[2]);
-		info->routerLifeTime = info->restOfHeader&0xFFFF;
-		info->advFlags       = (info->restOfHeader>>16)&0xFF;
-		info->hopLimit       = (info->restOfHeader>>24)&0xFF;
+		content             =  beginPacket;
+		info->restOfHeader  =  decBE32(content[0]); /* We want the options in native byte-order */
+		info->reachTimeout  =  decBE32(content[1]);
+		info->resolvTimeout =  decBE32(content[2]);
+		info->routerLifeTime=  info->restOfHeader&0xFFFF;
+		info->advFlags      =  (info->restOfHeader>>16)&0xFF;
+		info->hopLimit      =  (info->restOfHeader>>24)&0xFF;
 
-		packet->position     =  endPayload;
+		packet->position    =  endPayload;
 		break;
 	case ICMPv6_Pld_DualAddress:
 		endPayload = beginPacket+4;

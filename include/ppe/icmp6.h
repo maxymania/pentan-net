@@ -46,6 +46,13 @@ enum ICMPv6_meaning{
 	ICMPv6_Mng_Redirect,
 };
 
+enum ICMPv6_IpValidityLevel {
+	ICMPv6_Ivl_None = 0,
+	ICMPv6_Ivl_Protoc = 1,
+	ICMPv6_Ivl_Address = 2,
+	ICMPv6_Ivl_Ports   = 3,
+};
+
 typedef uint8_t ICMPv6IP[16];
 
 typedef struct{
@@ -62,13 +69,15 @@ typedef struct{
 	 * used by ppe_parsePacket_icmp6.
 	 */
 	ICMPv6IP ipAddress[2];
-	uint16_t ipHdrLen;
+	uint16_t ports[2];
+	uint32_t ipHdrLen;
 	uint8_t  ipProtoc;
 	uint8_t  inputType,inputCode;
 	
 	enum ICMPv6_payload payloadType  : 4;
 	enum ICMPv6_message messageType  : 4;
 	enum ICMPv6_meaning mesgMeaning  : 5;
+	enum ICMPv6_IpValidityLevel ipvl : 3;
 } ICMPv6_Arguments;
 
 
